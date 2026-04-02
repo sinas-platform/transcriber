@@ -1,0 +1,51 @@
+@use './colors';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    'Readex Pro',
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+
+  color: var(--color-text-primary);
+  background: var(--color-bg-app);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.app-root {
+  min-height: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+html[data-theme='dark'] {
+  input,
+  textarea {
+    caret-color: #fff;
+  }
+}

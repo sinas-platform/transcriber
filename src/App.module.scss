@@ -1,0 +1,72 @@
+.app {
+  min-height: 100%;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  &Header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &Eyebrow {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+  }
+
+  &Title {
+    margin: 0;
+    font-size: 1.6rem;
+    line-height: 1.2;
+  }
+
+  &Subtitle {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+  }
+
+  &Main {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  &Card {
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.875rem;
+    padding: 1rem;
+
+    h2 {
+      margin: 0 0 0.35rem;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+
+    p {
+      margin: 0;
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+    }
+  }
+
+  &Footer {
+    margin-top: auto;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    color: var(--color-text-secondary);
+  }
+}
+
+@media (min-width: 40rem) {
+  .app {
+    padding: 1.5rem;
+  }
+}
