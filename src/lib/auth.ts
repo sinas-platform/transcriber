@@ -1,13 +1,18 @@
-import { runtimeApi, setAccessToken } from './axios'
+import {
+  clearStoredAuthSession,
+  readStoredAuthSession,
+  replaceStoredAccessToken,
+  writeStoredAuthSession,
+} from './auth-session-storage'
+import { runtimeApi } from './axios'
 import { endpoints } from './endpoints'
-
-const AUTH_SESSION_KEY = 'auth_session'
 
 export interface AuthUser {
   id: string
   email: string
-  is_active: boolean
+  is_active?: boolean
   created_at: string
+  last_login_at?: string | null
   external_auth_provider?: string | null
   external_auth_id?: string | null
 }
@@ -25,6 +30,12 @@ interface VerifyOtpResponse {
   user: AuthUser
 }
 
+interface RefreshResponse {
+  access_token: string
+  token_type: string
+  expires_in: number
+}
+
 interface StoredSession {
   accessToken: string
   refreshToken: string
@@ -35,56 +46,25 @@ interface StoredSession {
 
 export type AuthSession = StoredSession
 
-function parseStoredSession(value: string): AuthSession | null {
-  try {
-    const parsed = JSON.parse(value) as Partial<StoredSession>
-
-    if (
-      typeof parsed.accessToken !== 'string' ||
-      typeof parsed.refreshToken !== 'string' ||
-      typeof parsed.tokenType !== 'string' ||
-      typeof parsed.expiresIn !== 'number' ||
-      typeof parsed.user !== 'object' ||
-      parsed.user === null
-    ) {
-      return null
-    }
-
-    return {
-      accessToken: parsed.accessToken,
-      refreshToken: parsed.refreshToken,
-      tokenType: parsed.tokenType,
-      expiresIn: parsed.expiresIn,
-      user: parsed.user as AuthUser,
-    }
-  } catch {
-    return null
-  }
-}
-
 export function restoreAuthSession(): AuthSession | null {
-  const raw = localStorage.getItem(AUTH_SESSION_KEY)
-  if (!raw) return null
+  const session = readStoredAuthSession()
+  if (!session) return null
 
-  const session = parseStoredSession(raw)
-  if (!session) {
-    localStorage.removeItem(AUTH_SESSION_KEY)
-    setAccessToken(null)
-    return null
+  return {
+    accessToken: session.accessToken,
+    refreshToken: session.refreshToken,
+    tokenType: session.tokenType,
+    expiresIn: session.expiresIn,
+    user: session.user as AuthUser,
   }
-
-  setAccessToken(session.accessToken)
-  return session
 }
 
 export function persistAuthSession(session: AuthSession): void {
-  localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session))
-  setAccessToken(session.accessToken)
+  writeStoredAuthSession(session)
 }
 
 export function clearAuthSession(): void {
-  localStorage.removeItem(AUTH_SESSION_KEY)
-  setAccessToken(null)
+  clearStoredAuthSession()
 }
 
 export async function requestOtp(email: string): Promise<string> {
@@ -105,5 +85,64 @@ export async function verifyOtp(sessionId: string, otpCode: string): Promise<Aut
     tokenType: data.token_type,
     expiresIn: data.expires_in,
     user: data.user,
+  }
+}
+
+export async function getCurrentUser(): Promise<AuthUser> {
+  const response = await runtimeApi.get<AuthUser>(endpoints.auth.me)
+  return response.data
+}
+
+export async function refreshAccessToken(refreshToken: string): Promise<{
+  accessToken: string
+  tokenType: string
+  expiresIn: number
+}> {
+  const response = await runtimeApi.post<RefreshResponse>(endpoints.auth.refresh, {
+    refresh_token: refreshToken,
+  })
+
+  return {
+    accessToken: response.data.access_token,
+    tokenType: response.data.token_type,
+    expiresIn: response.data.expires_in,
+  }
+}
+
+export function applyRefreshedAccessToken(
+  session: AuthSession,
+  refreshed: { accessToken: string; tokenType: string; expiresIn: number },
+): AuthSession {
+  const nextSession: AuthSession = {
+    ...session,
+    accessToken: refreshed.accessToken,
+    tokenType: refreshed.tokenType,
+    expiresIn: refreshed.expiresIn,
+  }
+
+  persistAuthSession(nextSession)
+  return nextSession
+}
+
+export async function revokeRefreshToken(refreshToken: string): Promise<void> {
+  await runtimeApi.post(endpoints.auth.logout, {
+    refresh_token: refreshToken,
+  })
+}
+
+export function syncStoredSessionAccessToken(
+  accessToken: string,
+  tokenType?: string,
+  expiresIn?: number,
+): AuthSession | null {
+  const updated = replaceStoredAccessToken(accessToken, tokenType, expiresIn)
+  if (!updated) return null
+
+  return {
+    accessToken: updated.accessToken,
+    refreshToken: updated.refreshToken,
+    tokenType: updated.tokenType,
+    expiresIn: updated.expiresIn,
+    user: updated.user as AuthUser,
   }
 }

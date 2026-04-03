@@ -47,6 +47,7 @@ export const endpoints = {
 
   files: {
     root: '/files',
+    upload: (namespace: string, collection: string) => `/files/${encode(namespace)}/${encode(collection)}`,
     file: (namespace: string, collection: string, filename: string) =>
       `/files/${encode(namespace)}/${encode(collection)}/${encode(filename)}`,
     publicFile: (namespace: string, collection: string, filename: string) =>
