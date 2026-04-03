@@ -1,34 +1,28 @@
-import { useAuth } from '../features/auth/use-auth'
+import { Menu, Mic } from 'lucide-react'
 import styles from './HomePage.module.scss'
+import sinasLogo from '../icons/sinas-logo.svg'
 
 export function HomePage() {
-  const { session, logout } = useAuth()
-
   return (
-    <div className={`app-root ${styles.app}`}>
-      <header className={styles.appHeader}>
-        <p className={styles.appEyebrow}>Transcriber</p>
-        <h1 className={styles.appTitle}>Main layout</h1>
-        <p className={styles.appSubtitle}>Signed in as {session?.user.email}</p>
+    <div className={`app-root ${styles.screen}`}>
+      <header className={styles.topBar}>
+        <button type="button" className={styles.iconButton} aria-label="Open menu">
+          <Menu size={24} />
+        </button>
+        <div className={styles.brand}>
+          <img className={styles.brandLogo} src={sinasLogo} alt="Sinas" />
+        </div>
       </header>
 
-      <main className={styles.appMain}>
-        <section className={styles.appCard}>
-          <h2>Recorder area</h2>
-          <p>Primary transcription controls will live here.</p>
-        </section>
-
-        <section className={styles.appCard}>
-          <h2>Transcript area</h2>
-          <p>Transcript stream and actions will be rendered here.</p>
-        </section>
-      </main>
-
-      <footer className={styles.appFooter}>
-        <button type="button" className={styles.logoutButton} onClick={logout}>
-          Logout
+      <main className={styles.main}>
+        <button type="button" className={styles.recordButton}>
+          <Mic size={32} strokeWidth={2.2} />
+          <span className={styles.recordLabel}>
+            <span className={styles.recordLabelLine}>START</span>
+            <span className={styles.recordLabelLine}>RECORDING</span>
+          </span>
         </button>
-      </footer>
+      </main>
     </div>
   )
 }
