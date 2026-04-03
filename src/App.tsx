@@ -1,32 +1,32 @@
-import styles from './App.module.scss'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { ProtectedRoute } from './components/ProtectedRoute'
+import { useAuth } from './features/auth/use-auth'
+import { HomePage } from './pages/HomePage'
+import { LoginPage } from './pages/LoginPage'
+import { OtpPage } from './pages/OtpPage'
 
 function App() {
+  const { isAuthenticated } = useAuth()
+
   return (
-    <div className={`app-root ${styles.app}`}>
-      <header className={styles.appHeader}>
-        <p className={styles.appEyebrow}>Transcriber</p>
-        <h1 className={styles.appTitle}>Main layout</h1>
-        <p className={styles.appSubtitle}>
-          Mobile-first scaffold is ready for feature implementation.
-        </p>
-      </header>
+    <Routes>
+      <Route
+        path="/auth/login"
+        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+      />
+      <Route path="/auth/otp" element={isAuthenticated ? <Navigate to="/" replace /> : <OtpPage />} />
 
-      <main className={styles.appMain}>
-        <section className={styles.appCard}>
-          <h2>Recorder area</h2>
-          <p>Primary transcription controls will live here.</p>
-        </section>
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <HomePage />
+          </ProtectedRoute>
+        }
+      />
 
-        <section className={styles.appCard}>
-          <h2>Transcript area</h2>
-          <p>Transcript stream and actions will be rendered here.</p>
-        </section>
-      </main>
-
-      <footer className={styles.appFooter}>
-        <small>Footer placeholder</small>
-      </footer>
-    </div>
+      <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/auth/login'} replace />} />
+    </Routes>
   )
 }
 
