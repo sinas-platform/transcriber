@@ -373,10 +373,12 @@ export function HomePage() {
       <main className={styles.main}>
         {isSessionActive ? (
           <section className={styles.recordingSession}>
-            <div className={`${styles.recordingSeal} ${phase === 'paused' ? styles.recordingSealPaused : ''}`}>
+            <div
+              className={`${styles.recordingSeal} ${phase === 'recording' ? styles.recordingSealLive : ''} ${phase === 'paused' ? styles.recordingSealPaused : ''}`}
+            >
               <div className={styles.recordingSealInner}>
-                <Mic size={28} strokeWidth={2.2} />
-                <span className={styles.recordingText}>{phase === 'paused' ? 'Paused' : 'Recording...'}</span>
+                <Mic size={32} strokeWidth={2.2} />
+                <span className={styles.recordingText}>{phase === 'paused' ? 'PAUSED' : 'RECORDING'}</span>
               </div>
             </div>
             <p className={styles.recordingTimer}>{timerLabel}</p>
@@ -431,10 +433,7 @@ export function HomePage() {
             <span className={styles.controlCircle}>
               <Check size={23} strokeWidth={2.2} />
             </span>
-            <span className={styles.controlLabel}>
-              <span>{phase === 'saving' ? 'Saving' : 'Save'}</span>
-              <span className={styles.controlLabelSecondary}>End</span>
-            </span>
+            <span className={styles.controlLabel}>{phase === 'saving' ? 'Saving' : 'Save'}</span>
           </button>
         </footer>
       ) : null}

@@ -85,38 +85,64 @@
 .recordingSession {
   display: grid;
   justify-items: center;
-  gap: 1rem;
+  gap: 1.8rem;
 }
 
 .recordingSeal {
-  width: min(8.25rem, 36vw);
+  width: min(12rem, 48vw);
   aspect-ratio: 1;
-  border: 2px solid #111827;
-  border-radius: 60% 40% 54% 46% / 44% 52% 48% 56%;
+  border-radius: 999px;
   display: grid;
   place-items: center;
-  transform: rotate(-9deg);
+  position: relative;
+}
+
+.recordingSeal::before,
+.recordingSeal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid #111827;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.recordingSeal::after {
+  inset: -0.55rem;
 }
 
 .recordingSealInner {
   width: 72%;
   aspect-ratio: 1;
-  border: 2px solid #111827;
   border-radius: 999px;
   display: grid;
   place-items: center;
   gap: 0.15rem;
-  transform: rotate(7deg);
 }
 
 .recordingText {
-  font-size: 0.75rem;
+  font-size: 1.3rem;
   line-height: 1;
+  font-weight: 500;
   letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 
 .recordingSealPaused {
   opacity: 0.72;
+}
+
+.recordingSealLive {
+  animation: none;
+}
+
+.recordingSealLive::before {
+  animation: seal-wave-ring 1.8s ease-out infinite;
+}
+
+.recordingSealLive::after {
+  animation: seal-wave-ring 1.8s ease-out 0.9s infinite;
 }
 
 .recordingTimer {
@@ -181,12 +207,33 @@
   line-height: 1.35;
 }
 
+@keyframes seal-wave-ring {
+  0% {
+    opacity: 0.38;
+    transform: scale(0.92);
+  }
+
+  90% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+}
+
 @media (max-width: 26.25rem) {
   .brandLogo {
     width: min(8.1rem, 44vw);
   }
 
   .recordLabel {
+    font-size: 1.15rem;
+  }
+
+  .recordingText {
     font-size: 1.15rem;
   }
 
@@ -212,6 +259,15 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .recordingSealLive,
+  .recordingSealLive::before,
+  .recordingSealLive::after,
+  .recordingSealLive .recordingSealInner {
+    animation: none;
+  }
+}
+
 :global(html[data-theme='dark']) {
   .recordButton {
     border-color: #e5e7eb;
@@ -221,6 +277,8 @@
 
   .recordingSeal,
   .recordingSealInner,
+  .recordingSeal::before,
+  .recordingSeal::after,
   .controlCircle {
     border-color: #e5e7eb;
   }
