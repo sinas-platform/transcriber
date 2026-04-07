@@ -4,6 +4,7 @@ import { useAuth } from './features/auth/use-auth'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { OtpPage } from './pages/OtpPage'
+import { RecordingDetailsEditPage } from './pages/RecordingDetailsEditPage'
 import { RecordingPage } from './pages/RecordingPage'
 
 function App() {
@@ -22,6 +23,14 @@ function App() {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recordings/:recordingId/details/edit"
+        element={
+          <ProtectedRoute>
+            <RecordingDetailsEditPage />
           </ProtectedRoute>
         }
       />

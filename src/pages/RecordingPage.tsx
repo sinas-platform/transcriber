@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronRight, Copy } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Copy, Pencil } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type SVGProps } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar/Sidebar'
@@ -40,6 +40,7 @@ type AgentColorClass =
   | 'agentColorYellow'
 
 type AgentPlaceholderIcon = ComponentType<SVGProps<SVGSVGElement>>
+type RecordingMember = { name: string; role: string }
 
 const AGENT_PLACEHOLDER_ICONS = [
   ArchPlaceholder,
@@ -76,6 +77,122 @@ function readMetadataDurationMs(metadata: Record<string, unknown>): number | nul
 function readMetadataRecordedAt(metadata: Record<string, unknown>): string | null {
   const value = metadata.recorded_at
   return typeof value === 'string' ? value : null
+}
+
+function readMetadataDetailsDate(metadata: Record<string, unknown>): string | null {
+  const value = metadata.details_date
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  return normalized || null
+}
+
+function readMetadataDetailsTime(metadata: Record<string, unknown>): string | null {
+  const value = metadata.details_time
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  return normalized || null
+}
+
+function readMetadataDetailsLocation(metadata: Record<string, unknown>): string | null {
+  const value = metadata.details_location
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  return normalized || null
+}
+
+function readMetadataDetailsLanguage(metadata: Record<string, unknown>): string | null {
+  const value = metadata.details_language
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  return normalized || null
+}
+
+function readMetadataDetailsMembers(metadata: Record<string, unknown>): RecordingMember[] {
+  const value = metadata.details_members
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') return null
+
+      const nameValue = (entry as { name?: unknown }).name
+      const roleValue = (entry as { role?: unknown }).role
+      const name = typeof nameValue === 'string' ? nameValue.trim() : ''
+      const role = typeof roleValue === 'string' ? roleValue.trim() : ''
+
+      if (!name && !role) return null
+      return { name, role }
+    })
+    .filter((entry): entry is RecordingMember => Boolean(entry))
+}
+
+function formatDetailsDate(dateText: string | null): string | null {
+  if (!dateText) return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateText)
+  if (!match) return dateText
+
+  const year = Number.parseInt(match[1], 10)
+  const month = Number.parseInt(match[2], 10) - 1
+  const day = Number.parseInt(match[3], 10)
+  const parsed = new Date(year, month, day)
+  if (Number.isNaN(parsed.getTime())) return dateText
+
+  return parsed.toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+function buildEffectiveRecordedAt(metadata: Record<string, unknown>, fallbackIso: string | null): string | null {
+  const detailsDate = readMetadataDetailsDate(metadata)
+  const detailsTime = readMetadataDetailsTime(metadata)
+
+  const dateMatch = detailsDate ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(detailsDate) : null
+  const timeMatch = detailsTime ? /^([01]\d|2[0-3]):([0-5]\d)$/.exec(detailsTime) : null
+
+  if (dateMatch) {
+    const year = Number.parseInt(dateMatch[1], 10)
+    const monthIndex = Number.parseInt(dateMatch[2], 10) - 1
+    const day = Number.parseInt(dateMatch[3], 10)
+    const hours = timeMatch ? Number.parseInt(timeMatch[1], 10) : 0
+    const minutes = timeMatch ? Number.parseInt(timeMatch[2], 10) : 0
+    const parsed = new Date(year, monthIndex, day, hours, minutes, 0, 0)
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString()
+    }
+  }
+
+  if (timeMatch && fallbackIso) {
+    const fallbackDate = new Date(fallbackIso)
+    if (!Number.isNaN(fallbackDate.getTime())) {
+      const hours = Number.parseInt(timeMatch[1], 10)
+      const minutes = Number.parseInt(timeMatch[2], 10)
+      const parsed = new Date(
+        fallbackDate.getFullYear(),
+        fallbackDate.getMonth(),
+        fallbackDate.getDate(),
+        hours,
+        minutes,
+        0,
+        0,
+      )
+
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toISOString()
+      }
+    }
+  }
+
+  return fallbackIso
+}
+
+function readMetadataTitle(metadata: Record<string, unknown>): string | null {
+  const value = metadata.title
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  return normalized || null
 }
 
 function formatRecordingDuration(durationMs: number | null): string {
@@ -292,7 +409,7 @@ export function RecordingPage() {
 
   const selectedRecordingLabel = useMemo(() => {
     if (!selectedRecording) return ''
-    return normalizeRecordingLabel(selectedRecording.name)
+    return readMetadataTitle(selectedRecording.metadata) || normalizeRecordingLabel(selectedRecording.name)
   }, [selectedRecording])
 
   const selectedRecordingDuration = useMemo(() => {
@@ -302,8 +419,39 @@ export function RecordingPage() {
 
   const selectedRecordingTimestamp = useMemo(() => {
     if (!selectedRecording) return ''
-    const recordedAt = readMetadataRecordedAt(selectedRecording.metadata) ?? selectedRecording.updatedAt
-    return formatRecordedDateTime(recordedAt)
+    const fallbackRecordedAt = readMetadataRecordedAt(selectedRecording.metadata) ?? selectedRecording.updatedAt
+    const effectiveRecordedAt = buildEffectiveRecordedAt(selectedRecording.metadata, fallbackRecordedAt)
+    return formatRecordedDateTime(effectiveRecordedAt)
+  }, [selectedRecording])
+
+  const selectedRecordingDetails = useMemo(() => {
+    if (!selectedRecording) {
+      return {
+        date: null,
+        time: null,
+        location: null,
+        language: null,
+        members: [] as RecordingMember[],
+        hasAny: false,
+      }
+    }
+
+    const metadata = selectedRecording.metadata
+    const date = formatDetailsDate(readMetadataDetailsDate(metadata))
+    const time = readMetadataDetailsTime(metadata)
+    const location = readMetadataDetailsLocation(metadata)
+    const language = readMetadataDetailsLanguage(metadata)
+    const members = readMetadataDetailsMembers(metadata)
+    const hasAny = Boolean(date || time || location || language || members.length > 0)
+
+    return {
+      date,
+      time,
+      location,
+      language,
+      members,
+      hasAny,
+    }
   }, [selectedRecording])
 
   const canExpandTranscription = Boolean(transcription && transcription.length > 320)
@@ -631,11 +779,67 @@ export function RecordingPage() {
             <section className={styles.pageHeaderSection}>
               <div className={styles.pageHeaderRow}>
                 <h1 className={styles.pageTitle}>{selectedRecordingLabel}</h1>
+                <button
+                  type='button'
+                  className={styles.editDetailsButton}
+                  onClick={() => void navigate(`/recordings/${selectedRecording.id}/details/edit`)}
+                  aria-label='Edit recording details'
+                >
+                  <Pencil size={16} />
+                </button>
               </div>
               <p className={styles.pageMeta}>
                 {selectedRecordingDuration}
                 {selectedRecordingTimestamp ? ` • ${selectedRecordingTimestamp}` : ''}
               </p>
+            </section>
+
+            <section className={styles.detailSection}>
+              <h2 className={styles.sectionTitle}>Details</h2>
+
+              {selectedRecordingDetails.hasAny ? (
+                <div className={styles.metadataList}>
+                  {selectedRecordingDetails.date ? (
+                    <div className={styles.metadataRow}>
+                      <span className={styles.metadataLabel}>Date</span>
+                      <span className={styles.metadataValue}>{selectedRecordingDetails.date}</span>
+                    </div>
+                  ) : null}
+                  {selectedRecordingDetails.time ? (
+                    <div className={styles.metadataRow}>
+                      <span className={styles.metadataLabel}>Time</span>
+                      <span className={styles.metadataValue}>{selectedRecordingDetails.time}</span>
+                    </div>
+                  ) : null}
+                  {selectedRecordingDetails.location ? (
+                    <div className={styles.metadataRow}>
+                      <span className={styles.metadataLabel}>Location</span>
+                      <span className={styles.metadataValue}>{selectedRecordingDetails.location}</span>
+                    </div>
+                  ) : null}
+                  {selectedRecordingDetails.language ? (
+                    <div className={styles.metadataRow}>
+                      <span className={styles.metadataLabel}>Language</span>
+                      <span className={styles.metadataValue}>{selectedRecordingDetails.language}</span>
+                    </div>
+                  ) : null}
+                  {selectedRecordingDetails.members.length > 0 ? (
+                    <div className={styles.metadataRow}>
+                      <span className={styles.metadataLabel}>Members</span>
+                      <ul className={styles.metadataMembersList}>
+                        {selectedRecordingDetails.members.map((member, index) => (
+                          <li key={`${member.name}-${member.role}-${index}`} className={styles.metadataMemberItem}>
+                            <span className={styles.metadataMemberName}>{member.name || 'Unnamed member'}</span>
+                            {member.role ? <span className={styles.metadataMemberRole}> • {member.role}</span> : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className={styles.sectionState}>No additional details added yet.</p>
+              )}
             </section>
 
             <section className={styles.detailSection}>

@@ -121,6 +121,10 @@ interface RecordingTarget {
   collection: string
 }
 
+interface RecordingMetadataUpdatePayload {
+  file_metadata: Record<string, unknown>
+}
+
 function mimeTypeToExtension(mimeType: string): string {
   if (mimeType.includes('ogg')) return 'ogg'
   if (mimeType.includes('mp4') || mimeType.includes('aac') || mimeType.includes('m4a')) return 'm4a'
@@ -263,4 +267,18 @@ export async function downloadRecordingContent(
     metadata: response.data.file_metadata,
     version: response.data.version,
   }
+}
+
+export async function updateRecordingMetadata(
+  recording: Pick<RecordingFile, 'namespace' | 'collection' | 'name'>,
+  metadata: Record<string, unknown>,
+): Promise<void> {
+  const payload: RecordingMetadataUpdatePayload = {
+    file_metadata: metadata,
+  }
+
+  await runtimeApi.patch(
+    endpoints.files.file(recording.namespace, recording.collection, recording.name),
+    payload,
+  )
 }
