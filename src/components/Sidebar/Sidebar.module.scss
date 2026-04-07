@@ -138,6 +138,11 @@
 
 .recordingsItem {
   width: 100%;
+}
+
+.recordingsItemButton {
+  width: 100%;
+  border: 0;
   background: transparent;
   border-radius: 0.5rem;
   padding: 0.4rem 0.5rem;
@@ -147,10 +152,21 @@
   gap: 0.5rem;
   min-height: 2.125rem;
   cursor: pointer;
+  text-align: left;
+  color: inherit;
   transition: background-color 140ms ease-in-out;
 }
 
-.recordingsItem:hover {
+.recordingsItemButton:hover {
+  background-color: color-mix(in srgb, var(--color-border) 36%, transparent);
+}
+
+.recordingsItemButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-text-primary) 65%, transparent);
+  outline-offset: 1px;
+}
+
+.recordingsItemButton:active {
   background-color: color-mix(in srgb, var(--color-border) 36%, transparent);
 }
 

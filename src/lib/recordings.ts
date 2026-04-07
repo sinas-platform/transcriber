@@ -52,6 +52,21 @@ interface RecordingListItemResponse {
   versions: RecordingVersionResponse[]
 }
 
+interface RecordingUrlResponse {
+  url: string
+  filename: string
+  content_type: string
+  version: number
+  expires_in: number
+}
+
+interface RecordingDownloadResponse {
+  content_base64: string
+  content_type: string
+  file_metadata: Record<string, unknown>
+  version: number
+}
+
 interface UploadRecordingOptions {
   blob: Blob
   durationMs: number
@@ -83,9 +98,17 @@ export interface RecordingFile {
   visibility: RecordingVisibility
   currentVersion: number
   metadata: Record<string, unknown>
+  url: string | null
   createdAt: string
   updatedAt: string
   versions: RecordingVersionResponse[]
+}
+
+export interface RecordingContent {
+  contentBase64: string
+  contentType: string
+  metadata: Record<string, unknown>
+  version: number
 }
 
 interface ListRecordingOptions {
@@ -198,8 +221,46 @@ export async function listRecordings(options?: ListRecordingOptions): Promise<Re
     visibility: recording.visibility,
     currentVersion: recording.current_version,
     metadata: recording.file_metadata,
+    url: recording.url ?? null,
     createdAt: recording.created_at,
     updatedAt: recording.updated_at,
     versions: recording.versions,
   }))
+}
+
+export async function createRecordingTempUrl(
+  recording: Pick<RecordingFile, 'namespace' | 'collection' | 'name' | 'currentVersion'>,
+): Promise<string> {
+  const response = await runtimeApi.post<RecordingUrlResponse>(
+    `${endpoints.files.file(recording.namespace, recording.collection, recording.name)}/url`,
+    null,
+    {
+      params: {
+        version: recording.currentVersion,
+        expires_in: 60 * 60,
+      },
+    },
+  )
+
+  return response.data.url
+}
+
+export async function downloadRecordingContent(
+  recording: Pick<RecordingFile, 'namespace' | 'collection' | 'name' | 'currentVersion'>,
+): Promise<RecordingContent> {
+  const response = await runtimeApi.get<RecordingDownloadResponse>(
+    endpoints.files.file(recording.namespace, recording.collection, recording.name),
+    {
+      params: {
+        version: recording.currentVersion,
+      },
+    },
+  )
+
+  return {
+    contentBase64: response.data.content_base64,
+    contentType: response.data.content_type,
+    metadata: response.data.file_metadata,
+    version: response.data.version,
+  }
 }

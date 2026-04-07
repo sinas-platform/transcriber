@@ -11,6 +11,7 @@ interface SidebarProps {
   userEmail?: string | null
   onClose: () => void
   onNewRecording: () => void
+  onSelectRecording: (recording: RecordingFile) => void
   onLogout: () => void
 }
 
@@ -57,6 +58,7 @@ export function Sidebar({
   userEmail,
   onClose,
   onNewRecording,
+  onSelectRecording,
   onLogout,
 }: SidebarProps) {
   const visibleRecordings = useMemo(() => {
@@ -117,13 +119,19 @@ export function Sidebar({
 
                 return (
                   <li key={recording.id} className={styles.recordingsItem}>
-                    <div className={styles.recordingsItemContent}>
-                      <p className={styles.recordingsItemTitle}>{normalizeRecordingLabel(recording.name)}</p>
-                      <p className={styles.recordingsItemMeta}>
-                        {durationLabel}
-                        {recordedLabel ? ` • ${recordedLabel}` : ''}
-                      </p>
-                    </div>
+                    <button
+                      type='button'
+                      className={styles.recordingsItemButton}
+                      onClick={() => onSelectRecording(recording)}
+                    >
+                      <div className={styles.recordingsItemContent}>
+                        <p className={styles.recordingsItemTitle}>{normalizeRecordingLabel(recording.name)}</p>
+                        <p className={styles.recordingsItemMeta}>
+                          {durationLabel}
+                          {recordedLabel ? ` • ${recordedLabel}` : ''}
+                        </p>
+                      </div>
+                    </button>
                   </li>
                 )
               })}
