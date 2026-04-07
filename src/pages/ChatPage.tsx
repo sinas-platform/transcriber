@@ -3,10 +3,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../features/auth/use-auth'
 import {
   listAgents,
   type AgentSummary,
 } from '../lib/agents'
+import { ensureAgentVisualSlots } from '../lib/agent-visual-slots'
 import {
   extractMessageText,
   getChat,
@@ -134,6 +136,7 @@ export function ChatPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { recordingId, chatId } = useParams<{ recordingId: string; chatId: string }>()
+  const { session } = useAuth()
   const locationState = location.state as ChatLocationState | null
 
   const initialContent = useMemo<MessageContent | undefined>(() => {
@@ -148,6 +151,7 @@ export function ChatPage() {
   const [isLoadingChat, setIsLoadingChat] = useState(true)
   const [chatError, setChatError] = useState<string | null>(null)
   const [availableAgents, setAvailableAgents] = useState<AgentSummary[]>([])
+  const [agentVisualSlots, setAgentVisualSlots] = useState<Record<string, number>>({})
 
   const [draft, setDraft] = useState('')
   const [isSending, setIsSending] = useState(false)
@@ -165,10 +169,17 @@ export function ChatPage() {
       try {
         const loaded = await listAgents()
         if (isCancelled) return
-        setAvailableAgents(sortAgents(loaded.filter((agent) => agent.isActive)))
+        const activeAgents = sortAgents(loaded.filter((agent) => agent.isActive))
+        const visualSlots = ensureAgentVisualSlots(
+          activeAgents.map((agent) => agent.id),
+          session?.user.id,
+        )
+        setAgentVisualSlots(visualSlots)
+        setAvailableAgents(activeAgents)
       } catch {
         if (isCancelled) return
         setAvailableAgents([])
+        setAgentVisualSlots({})
       }
     }
 
@@ -177,7 +188,7 @@ export function ChatPage() {
     return () => {
       isCancelled = true
     }
-  }, [])
+  }, [session?.user.id])
 
   const loadChat = useCallback(async (): Promise<void> => {
     if (!chatId) {
@@ -320,13 +331,15 @@ export function ChatPage() {
 
   const assistantVisualStyle = useMemo(() => {
     if (selectedAgent) {
-      const index = availableAgents.findIndex((agent) => agent.id === selectedAgent.id)
-      if (index >= 0) return getAgentVisualStyle(index)
+      const slot = agentVisualSlots[selectedAgent.id]
+      if (typeof slot === 'number') {
+        return getAgentVisualStyle(slot)
+      }
     }
 
     const fallbackIndex = buildAgentVisualStyleFallbackKey(chat?.agentNamespace, chat?.agentName)
     return getAgentVisualStyle(fallbackIndex)
-  }, [availableAgents, chat?.agentName, chat?.agentNamespace, selectedAgent])
+  }, [agentVisualSlots, chat?.agentName, chat?.agentNamespace, selectedAgent])
 
   const assistantIconUrl = selectedAgent?.iconUrl?.trim() || null
   const AssistantPlaceholderIcon = assistantVisualStyle.placeholderIcon

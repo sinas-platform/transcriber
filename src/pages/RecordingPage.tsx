@@ -8,6 +8,12 @@ import {
   type AgentSummary,
 } from '../lib/agents'
 import {
+  markAgentAsRecentlyUsed,
+  readRecentAgentsByUser,
+  sortAgentsByRecentUsage,
+} from '../lib/agent-recency'
+import { ensureAgentVisualSlots } from '../lib/agent-visual-slots'
+import {
   buildRecordingBootstrapMessage,
   createChatWithAgent,
 } from '../lib/chats'
@@ -337,18 +343,6 @@ function getApiErrorMessage(error: unknown, fallback: string): string {
   return fallback
 }
 
-function sortAgents(agents: AgentSummary[]): AgentSummary[] {
-  return [...agents].sort((left, right) => {
-    if (left.isDefault !== right.isDefault) {
-      return left.isDefault ? -1 : 1
-    }
-
-    const leftLabel = `${left.namespace}/${left.name}`
-    const rightLabel = `${right.namespace}/${right.name}`
-    return leftLabel.localeCompare(rightLabel)
-  })
-}
-
 function getAgentVisualStyle(agentIndex: number): {
   placeholderIcon: AgentPlaceholderIcon
   colorClass: AgentColorClass
@@ -411,6 +405,7 @@ export function RecordingPage() {
   const [hasCopiedTranscription, setHasCopiedTranscription] = useState(false)
 
   const [availableAgents, setAvailableAgents] = useState<AgentSummary[]>([])
+  const [agentVisualSlots, setAgentVisualSlots] = useState<Record<string, number>>({})
   const [isLoadingAgents, setIsLoadingAgents] = useState(false)
   const [agentsError, setAgentsError] = useState<string | null>(null)
   const [agentChatError, setAgentChatError] = useState<string | null>(null)
@@ -619,7 +614,16 @@ export function RecordingPage() {
         return
       }
 
-      const activeAgents = sortAgents(agentsResult.value.filter((agent) => agent.isActive))
+      const recentAgentsByUser = readRecentAgentsByUser(session?.user.id)
+      const activeAgents = sortAgentsByRecentUsage(
+        agentsResult.value.filter((agent) => agent.isActive),
+        recentAgentsByUser,
+      )
+      const visualSlots = ensureAgentVisualSlots(
+        activeAgents.map((agent) => agent.id),
+        session?.user.id,
+      )
+      setAgentVisualSlots(visualSlots)
       setAvailableAgents(activeAgents)
       setIsLoadingAgents(false)
     }
@@ -629,7 +633,7 @@ export function RecordingPage() {
     return () => {
       isCancelled = true
     }
-  }, [playbackTarget, selectedRecordingId])
+  }, [playbackTarget, selectedRecordingId, session?.user.id])
 
   useEffect(() => {
     if (!selectedRecording) return
@@ -775,6 +779,8 @@ export function RecordingPage() {
         title: chatTitle,
         input: {},
       })
+      const recentAgentsByUser = markAgentAsRecentlyUsed(agent.id, session?.user.id)
+      setAvailableAgents((current) => sortAgentsByRecentUsage(current, recentAgentsByUser))
 
       const bootstrapMessage = buildRecordingBootstrapMessage(selectedRecordingLabel, transcriptionText)
       void navigate(`/recordings/${selectedRecording.id}/chats/${chat.id}`, {
@@ -1008,8 +1014,9 @@ export function RecordingPage() {
 
               {!isLoadingAgents && !agentsError && availableAgents.length > 0 ? (
                 <ul className={styles.agentsList}>
-                  {availableAgents.map((agent, agentIndex) => {
-                    const visualStyle = getAgentVisualStyle(agentIndex)
+                  {availableAgents.map((agent) => {
+                    const visualSlot = agentVisualSlots[agent.id] ?? 0
+                    const visualStyle = getAgentVisualStyle(visualSlot)
                     const PlaceholderIcon = visualStyle.placeholderIcon
                     const hasAgentIcon = Boolean(agent.iconUrl?.trim())
                     const isOpeningThisAgent = isOpeningAgentChatId === agent.id
