@@ -184,30 +184,61 @@
 }
 
 .agentCard {
+  --agent-placeholder-color: var(--color-palette-orange);
+  --agent-placeholder-soft-color: var(--color-palette-orange-soft);
+
   width: 100%;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: 0.95rem;
   background: transparent;
-  padding: 0.65rem 0.85rem;
+  padding: 0.6rem 0.72rem;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.62rem;
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
 }
 
 .agentCard:hover {
   background: color-mix(in srgb, var(--color-border) 24%, transparent);
+  border-color: color-mix(in srgb, var(--agent-placeholder-color) 28%, var(--color-border));
+}
+
+.agentIconShell {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--agent-placeholder-color) 34%, var(--color-border));
+  background: var(--agent-placeholder-soft-color);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.agentIconImage {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .agentIconPlaceholder {
-  width: 0.95rem;
-  height: 0.95rem;
-  border-radius: 999px;
-  border: 1.8px solid var(--color-text-secondary);
-  display: inline-block;
+  width: 1.02rem;
+  height: 1.02rem;
+  display: block;
+  color: var(--agent-placeholder-color);
+  flex: 0 0 auto;
+}
+
+.agentIconPlaceholder :global(path[fill]):not([fill='none']) {
+  fill: currentColor;
+}
+
+.agentIconPlaceholder :global(path[stroke]):not([stroke='none']) {
+  stroke: currentColor;
 }
 
 .agentCardText {
@@ -232,6 +263,46 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.agentColorOrange {
+  --agent-placeholder-color: var(--color-palette-orange);
+  --agent-placeholder-soft-color: var(--color-palette-orange-soft);
+}
+
+.agentColorPink {
+  --agent-placeholder-color: var(--color-palette-pink);
+  --agent-placeholder-soft-color: var(--color-palette-pink-soft);
+}
+
+.agentColorPurple {
+  --agent-placeholder-color: var(--color-palette-purple);
+  --agent-placeholder-soft-color: var(--color-palette-purple-soft);
+}
+
+.agentColorViolet {
+  --agent-placeholder-color: var(--color-palette-violet);
+  --agent-placeholder-soft-color: var(--color-palette-violet-soft);
+}
+
+.agentColorIndigo {
+  --agent-placeholder-color: var(--color-palette-indigo);
+  --agent-placeholder-soft-color: var(--color-palette-indigo-soft);
+}
+
+.agentColorCyan {
+  --agent-placeholder-color: var(--color-palette-cyan);
+  --agent-placeholder-soft-color: var(--color-palette-cyan-soft);
+}
+
+.agentColorGreen {
+  --agent-placeholder-color: var(--color-palette-green);
+  --agent-placeholder-soft-color: var(--color-palette-green-soft);
+}
+
+.agentColorYellow {
+  --agent-placeholder-color: var(--color-palette-yellow);
+  --agent-placeholder-soft-color: var(--color-palette-yellow-soft);
 }
 
 @media (max-width: 26.25rem) {

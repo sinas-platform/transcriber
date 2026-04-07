@@ -1,5 +1,5 @@
 import { Check, ChevronDown, ChevronRight, Copy } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type SVGProps } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar/Sidebar'
 import { useAuth } from '../features/auth/use-auth'
@@ -7,6 +7,18 @@ import {
   listAgents,
   type AgentSummary,
 } from '../lib/agents'
+import ArchPlaceholder from '../icons/agentsPlaceholders/arch.svg?react'
+import BlobPlaceholder from '../icons/agentsPlaceholders/blob.svg?react'
+import CirclesSquarePlaceholder from '../icons/agentsPlaceholders/circles-square.svg?react'
+import CirclesVerticalPlaceholder from '../icons/agentsPlaceholders/circles-vertical.svg?react'
+import CoilPlaceholder from '../icons/agentsPlaceholders/coil.svg?react'
+import EllipsesPlaceholder from '../icons/agentsPlaceholders/ellipses.svg?react'
+import HalfCirclesPlaceholder from '../icons/agentsPlaceholders/half-circles.svg?react'
+import PetalsPlaceholder from '../icons/agentsPlaceholders/petals.svg?react'
+import PinwheelPlaceholder from '../icons/agentsPlaceholders/pinwheel.svg?react'
+import SemicirclesHorizontalPlaceholder from '../icons/agentsPlaceholders/semicircles-horizontal.svg?react'
+import SemicirclesVerticalPlaceholder from '../icons/agentsPlaceholders/semicircles-vertical.svg?react'
+import SparklePlaceholder from '../icons/agentsPlaceholders/sparkle.svg?react'
 import {
   downloadRecordingContent,
   getRecordingsTarget,
@@ -16,6 +28,44 @@ import {
 import styles from './RecordingPage.module.scss'
 
 type PageView = 'recording' | 'sidebar'
+
+type AgentColorClass =
+  | 'agentColorOrange'
+  | 'agentColorPink'
+  | 'agentColorPurple'
+  | 'agentColorViolet'
+  | 'agentColorIndigo'
+  | 'agentColorCyan'
+  | 'agentColorGreen'
+  | 'agentColorYellow'
+
+type AgentPlaceholderIcon = ComponentType<SVGProps<SVGSVGElement>>
+
+const AGENT_PLACEHOLDER_ICONS = [
+  ArchPlaceholder,
+  BlobPlaceholder,
+  CirclesSquarePlaceholder,
+  CirclesVerticalPlaceholder,
+  CoilPlaceholder,
+  EllipsesPlaceholder,
+  HalfCirclesPlaceholder,
+  PetalsPlaceholder,
+  PinwheelPlaceholder,
+  SemicirclesHorizontalPlaceholder,
+  SemicirclesVerticalPlaceholder,
+  SparklePlaceholder,
+] as const satisfies AgentPlaceholderIcon[]
+
+const AGENT_COLOR_CLASSES: AgentColorClass[] = [
+  'agentColorOrange',
+  'agentColorPink',
+  'agentColorPurple',
+  'agentColorViolet',
+  'agentColorIndigo',
+  'agentColorCyan',
+  'agentColorGreen',
+  'agentColorYellow',
+]
 
 function readMetadataDurationMs(metadata: Record<string, unknown>): number | null {
   const value = metadata.duration_ms
@@ -168,6 +218,16 @@ function sortAgents(agents: AgentSummary[]): AgentSummary[] {
     const rightLabel = `${right.namespace}/${right.name}`
     return leftLabel.localeCompare(rightLabel)
   })
+}
+
+function getAgentVisualStyle(agentIndex: number): {
+  placeholderIcon: AgentPlaceholderIcon
+  colorClass: AgentColorClass
+} {
+  return {
+    placeholderIcon: AGENT_PLACEHOLDER_ICONS[agentIndex % AGENT_PLACEHOLDER_ICONS.length],
+    colorClass: AGENT_COLOR_CLASSES[agentIndex % AGENT_COLOR_CLASSES.length],
+  }
 }
 
 function readMetadataTranscriptionStatus(metadata: Record<string, unknown>): string | null {
@@ -689,20 +749,41 @@ export function RecordingPage() {
 
               {!isLoadingAgents && !agentsError && availableAgents.length > 0 ? (
                 <ul className={styles.agentsList}>
-                  {availableAgents.map((agent) => (
-                    <li key={agent.id}>
-                      <button type='button' className={styles.agentCard}>
-                        <span className={styles.agentIconPlaceholder} />
-                        <span className={styles.agentCardText}>
-                          <span className={styles.agentCardName}>{agent.name}</span>
-                          <span className={styles.agentCardDescription}>
-                            {agent.description?.trim() || `${agent.namespace}/${agent.name}`}
+                  {availableAgents.map((agent, agentIndex) => {
+                    const visualStyle = getAgentVisualStyle(agentIndex)
+                    const PlaceholderIcon = visualStyle.placeholderIcon
+                    const hasAgentIcon = Boolean(agent.iconUrl?.trim())
+
+                    return (
+                      <li key={agent.id}>
+                        <button
+                          type='button'
+                          className={`${styles.agentCard} ${styles[visualStyle.colorClass]}`}
+                        >
+                          <span className={styles.agentIconShell}>
+                            {hasAgentIcon ? (
+                              <img
+                                className={styles.agentIconImage}
+                                src={agent.iconUrl ?? undefined}
+                                alt=''
+                                aria-hidden='true'
+                                loading='lazy'
+                              />
+                            ) : (
+                              <PlaceholderIcon className={styles.agentIconPlaceholder} aria-hidden='true' focusable='false' />
+                            )}
                           </span>
-                        </span>
-                        <ChevronRight size={18} />
-                      </button>
-                    </li>
-                  ))}
+                          <span className={styles.agentCardText}>
+                            <span className={styles.agentCardName}>{agent.name}</span>
+                            <span className={styles.agentCardDescription}>
+                              {agent.description?.trim() || `${agent.namespace}/${agent.name}`}
+                            </span>
+                          </span>
+                          <ChevronRight size={18} />
+                        </button>
+                      </li>
+                    )
+                  })}
                 </ul>
               ) : null}
             </section>

@@ -4,6 +4,24 @@
   --color-bg-app: #FAFAF8;
   --color-bg-surface: rgba(255, 255, 255, 0.86);
   --color-border: #dbe3ee;
+
+  --color-palette-orange: #e97203;
+  --color-palette-pink: #e526a4;
+  --color-palette-purple: #ae32d3;
+  --color-palette-violet: #8032d5;
+  --color-palette-indigo: #4e5cd0;
+  --color-palette-cyan: #37bce5;
+  --color-palette-green: #92b421;
+  --color-palette-yellow: #f9b524;
+
+  --color-palette-orange-soft: #ffead6;
+  --color-palette-pink-soft: #ffdef3;
+  --color-palette-purple-soft: #f2c8ff;
+  --color-palette-violet-soft: #e3ccfd;
+  --color-palette-indigo-soft: #dadefe;
+  --color-palette-cyan-soft: #cbedf8;
+  --color-palette-green-soft: #f2fad4;
+  --color-palette-yellow-soft: #fff0cf;
 }
 
 html[data-theme='dark'] {
