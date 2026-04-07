@@ -4,6 +4,7 @@ import { useAuth } from './features/auth/use-auth'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { OtpPage } from './pages/OtpPage'
+import { RecordingPage } from './pages/RecordingPage'
 
 function App() {
   const { isAuthenticated } = useAuth()
@@ -21,6 +22,14 @@ function App() {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recordings/:recordingId"
+        element={
+          <ProtectedRoute>
+            <RecordingPage />
           </ProtectedRoute>
         }
       />
