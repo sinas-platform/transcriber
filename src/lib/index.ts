@@ -1,6 +1,7 @@
 export * from './axios'
 export * from './agents'
 export * from './auth'
+export * from './chats'
 export * from './endpoints'
 export * from './recordings'
 export * from './validation'

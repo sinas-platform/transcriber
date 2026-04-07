@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { useAuth } from './features/auth/use-auth'
+import { ChatPage } from './pages/ChatPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { OtpPage } from './pages/OtpPage'
@@ -31,6 +32,14 @@ function App() {
         element={
           <ProtectedRoute>
             <RecordingDetailsEditPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recordings/:recordingId/chats/:chatId"
+        element={
+          <ProtectedRoute>
+            <ChatPage />
           </ProtectedRoute>
         }
       />

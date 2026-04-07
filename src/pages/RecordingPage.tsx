@@ -7,6 +7,10 @@ import {
   listAgents,
   type AgentSummary,
 } from '../lib/agents'
+import {
+  buildRecordingBootstrapMessage,
+  createChatWithAgent,
+} from '../lib/chats'
 import ArchPlaceholder from '../icons/agentsPlaceholders/arch.svg?react'
 import BlobPlaceholder from '../icons/agentsPlaceholders/blob.svg?react'
 import CirclesSquarePlaceholder from '../icons/agentsPlaceholders/circles-square.svg?react'
@@ -228,6 +232,14 @@ function normalizeRecordingLabel(name: string): string {
   return name.replace(/\.[^.]+$/, '').replace(/^recording[-_]?/i, '').replace(/[-_]/g, ' ').trim() || name
 }
 
+function buildAgentChatTitle(recordingLabel: string, agentName: string): string {
+  const label = recordingLabel.trim() || 'Recording'
+  const agent = agentName.trim() || 'Agent'
+  const rawTitle = `${label} • ${agent}`
+
+  return rawTitle.length > 96 ? `${rawTitle.slice(0, 95)}…` : rawTitle
+}
+
 function base64ToBlob(base64: string, contentType: string): Blob {
   const binary = window.atob(base64)
   const bytes = new Uint8Array(binary.length)
@@ -401,6 +413,8 @@ export function RecordingPage() {
   const [availableAgents, setAvailableAgents] = useState<AgentSummary[]>([])
   const [isLoadingAgents, setIsLoadingAgents] = useState(false)
   const [agentsError, setAgentsError] = useState<string | null>(null)
+  const [agentChatError, setAgentChatError] = useState<string | null>(null)
+  const [isOpeningAgentChatId, setIsOpeningAgentChatId] = useState<string | null>(null)
 
   const playbackObjectUrlRef = useRef<string | null>(null)
   const copyResetTimeoutRef = useRef<number | null>(null)
@@ -506,6 +520,8 @@ export function RecordingPage() {
       clearCopyResetTimer()
       setAvailableAgents([])
       setAgentsError(null)
+      setAgentChatError(null)
+      setIsOpeningAgentChatId(null)
       revokePlaybackObjectUrl()
 
       if (!recordingId) {
@@ -565,6 +581,8 @@ export function RecordingPage() {
       setRecordingUrlError(null)
       setIsTranscriptionExpanded(false)
       setAgentsError(null)
+      setAgentChatError(null)
+      setIsOpeningAgentChatId(null)
       setIsLoadingAgents(true)
       revokePlaybackObjectUrl()
 
@@ -732,6 +750,42 @@ export function RecordingPage() {
       }, 1800)
     } catch {
       setHasCopiedTranscription(false)
+    }
+  }
+
+  const openAgentChat = async (agent: AgentSummary): Promise<void> => {
+    if (!selectedRecording || isOpeningAgentChatId) return
+
+    const transcriptionText = transcription?.trim() || ''
+    if (!transcriptionText) {
+      if (isGeneratingTranscription) {
+        setAgentChatError('Transcription is still being generated. Please wait a moment and try again.')
+      } else {
+        setAgentChatError('Transcription is not available for this recording yet.')
+      }
+      return
+    }
+
+    setAgentChatError(null)
+    setIsOpeningAgentChatId(agent.id)
+
+    try {
+      const chatTitle = buildAgentChatTitle(selectedRecordingLabel, agent.name)
+      const chat = await createChatWithAgent(agent.namespace, agent.name, {
+        title: chatTitle,
+        input: {},
+      })
+
+      const bootstrapMessage = buildRecordingBootstrapMessage(selectedRecordingLabel, transcriptionText)
+      void navigate(`/recordings/${selectedRecording.id}/chats/${chat.id}`, {
+        state: {
+          initialContent: bootstrapMessage,
+        },
+      })
+    } catch (error) {
+      setAgentChatError(getApiErrorMessage(error, 'Could not open chat with this agent.'))
+    } finally {
+      setIsOpeningAgentChatId(null)
     }
   }
 
@@ -946,6 +1000,7 @@ export function RecordingPage() {
 
               {isLoadingAgents ? <p className={styles.sectionState}>Loading agents...</p> : null}
               {agentsError ? <p className={styles.sectionError}>{agentsError}</p> : null}
+              {agentChatError ? <p className={styles.sectionError}>{agentChatError}</p> : null}
 
               {!isLoadingAgents && !agentsError && availableAgents.length === 0 ? (
                 <p className={styles.sectionState}>No active agents available.</p>
@@ -957,12 +1012,16 @@ export function RecordingPage() {
                     const visualStyle = getAgentVisualStyle(agentIndex)
                     const PlaceholderIcon = visualStyle.placeholderIcon
                     const hasAgentIcon = Boolean(agent.iconUrl?.trim())
+                    const isOpeningThisAgent = isOpeningAgentChatId === agent.id
 
                     return (
                       <li key={agent.id}>
                         <button
                           type='button'
                           className={`${styles.agentCard} ${styles[visualStyle.colorClass]}`}
+                          onClick={() => void openAgentChat(agent)}
+                          disabled={Boolean(isOpeningAgentChatId)}
+                          aria-label={`Open chat with ${agent.name}`}
                         >
                           <span className={styles.agentIconShell}>
                             {hasAgentIcon ? (
@@ -983,7 +1042,11 @@ export function RecordingPage() {
                               {agent.description?.trim() || `${agent.namespace}/${agent.name}`}
                             </span>
                           </span>
-                          <ChevronRight size={18} />
+                          {isOpeningThisAgent ? (
+                            <span className={styles.agentCardActionLabel}>Opening...</span>
+                          ) : (
+                            <ChevronRight size={18} />
+                          )}
                         </button>
                       </li>
                     )

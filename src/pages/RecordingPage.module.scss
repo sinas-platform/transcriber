@@ -274,6 +274,16 @@
   border-color: color-mix(in srgb, var(--agent-placeholder-color) 28%, var(--color-border));
 }
 
+.agentCard:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
+.agentCard:disabled:hover {
+  background: transparent;
+  border-color: var(--color-border);
+}
+
 .agentIconShell {
   width: 1.85rem;
   height: 1.85rem;
@@ -330,6 +340,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.agentCardActionLabel {
+  color: var(--color-text-secondary);
+  font-size: 0.74rem;
+  line-height: 1.2;
+  font-weight: 500;
 }
 
 .agentColorOrange {
