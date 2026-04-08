@@ -1,9 +1,8 @@
-import { Check, Menu, Mic, Pause, Play, X } from 'lucide-react'
+import { Check, Mic, Pause, Play, Settings, UserRound, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sidebar } from '../components/Sidebar/Sidebar'
-import { useAuth } from '../features/auth/use-auth'
-import sinasLogo from '../icons/sinas-logo.svg'
+import { RecentRecordingsList } from '../components/Home/RecentRecordingsList'
+import sinasLogo from '../icons/sinas-logo-small.svg'
 import {
   getRecordingsTarget,
   listRecordings,
@@ -13,7 +12,6 @@ import {
 import styles from './HomePage.module.scss'
 
 type RecordingPhase = 'idle' | 'recording' | 'paused' | 'saving'
-type PageView = 'recorder' | 'sidebar'
 
 const PREFERRED_RECORDING_MIME_TYPES = [
   'audio/webm;codecs=opus',
@@ -61,11 +59,9 @@ function getApiErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function HomePage() {
-  const { logout, session } = useAuth()
   const navigate = useNavigate()
 
   const [phase, setPhase] = useState<RecordingPhase>('idle')
-  const [view, setView] = useState<PageView>('recorder')
   const [elapsedMs, setElapsedMs] = useState(0)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoadingRecordings, setIsLoadingRecordings] = useState(false)
@@ -170,7 +166,6 @@ export function HomePage() {
       })
 
       setErrorMessage(null)
-      setView('sidebar')
       await loadRecordings()
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, 'Failed to save recording. Please try again.'))
@@ -189,7 +184,6 @@ export function HomePage() {
     }
 
     setErrorMessage(null)
-    setView('recorder')
     resetElapsedClock()
 
     let stream: MediaStream
@@ -301,15 +295,7 @@ export function HomePage() {
     recorder.stop()
   }
 
-  const openSidebar = (): void => {
-    if (isSessionActive) return
-
-    setView('sidebar')
-    void loadRecordings()
-  }
-
   const selectRecording = (recording: RecordingFile): void => {
-    setView('recorder')
     void navigate(`/recordings/${recording.id}`)
   }
 
@@ -324,6 +310,10 @@ export function HomePage() {
       window.clearInterval(interval)
     }
   }, [phase])
+
+  useEffect(() => {
+    void loadRecordings()
+  }, [loadRecordings])
 
   useEffect(() => {
     return () => {
@@ -341,107 +331,108 @@ export function HomePage() {
     }
   }, [])
 
-  if (view === 'sidebar') {
-    return (
-      <Sidebar
-        isLoadingRecordings={isLoadingRecordings}
-        recordingsError={recordingsError}
-        recordings={recordings}
-        userEmail={session?.user.email}
-        onClose={() => setView('recorder')}
-        onNewRecording={() => setView('recorder')}
-        onSelectRecording={selectRecording}
-        onLogout={logout}
-      />
-    )
-  }
-
   return (
     <div className={`app-root ${styles.screen}`}>
       <header className={styles.topBar}>
-        <button
-          type='button'
-          className={styles.iconButton}
-          aria-label='Open menu'
-          onClick={openSidebar}
-          disabled={isSessionActive}
-        >
-          <Menu size={24} />
-        </button>
         <div className={styles.brand}>
           <img className={styles.brandLogo} src={sinasLogo} alt='Sinas' />
+          <span className={styles.brandText}>Transcriber</span>
+        </div>
+
+        <div className={styles.headerActions}>
+          <span className={styles.avatarBadge} aria-hidden='true'>
+            <UserRound size={19} strokeWidth={2.1} />
+          </span>
+
+          <button type='button' className={styles.iconAction} aria-label='Settings'>
+            <Settings size={19} strokeWidth={2.1} />
+          </button>
         </div>
       </header>
 
       <main className={styles.main}>
-        {isSessionActive ? (
-          <section className={styles.recordingSession}>
-            <div
-              className={`${styles.recordingSeal} ${phase === 'recording' ? styles.recordingSealLive : ''} ${phase === 'paused' ? styles.recordingSealPaused : ''}`}
-            >
-              <div className={styles.recordingSealInner}>
-                <Mic size={32} strokeWidth={2.2} />
-                <span className={styles.recordingText}>{phase === 'paused' ? 'PAUSED' : 'RECORDING'}</span>
-              </div>
-            </div>
-            <p className={styles.recordingTimer}>{timerLabel}</p>
+        <section className={styles.heroSection}>
+          <div className={styles.heroCopy}>
+            <h1 className={styles.title}>Start recording</h1>
+            <p className={styles.subtitle}>Record anything, revisit everything.</p>
+          </div>
+
+          <section className={styles.recorderCard}>
+            {isSessionActive ? (
+              <>
+                <div
+                  className={`${styles.recordingSeal} ${phase === 'recording' ? styles.recordingSealLive : ''} ${phase === 'paused' ? styles.recordingSealPaused : ''}`}
+                >
+                  <div className={styles.recordingSealInner}>
+                    <Mic size={32} strokeWidth={2.2} />
+                  </div>
+                </div>
+                <p className={styles.recordingTimer}>{timerLabel}</p>
+
+                <div className={styles.controls}>
+                  <button
+                    type='button'
+                    className={styles.controlAction}
+                    onClick={cancelRecording}
+                    disabled={phase === 'saving'}
+                  >
+                    <span className={styles.controlCircle}>
+                      <X size={20} strokeWidth={2.2} />
+                    </span>
+                    <span className={styles.controlLabel}>Cancel</span>
+                  </button>
+
+                  <button
+                    type='button'
+                    className={styles.controlAction}
+                    onClick={togglePause}
+                    disabled={phase === 'saving'}
+                  >
+                    <span className={styles.controlCircle}>
+                      {phase === 'paused' ? (
+                        <Play size={20} strokeWidth={2.2} />
+                      ) : (
+                        <Pause size={20} strokeWidth={2.2} />
+                      )}
+                    </span>
+                    <span className={styles.controlLabel}>{phase === 'paused' ? 'Resume' : 'Pause'}</span>
+                  </button>
+
+                  <button
+                    type='button'
+                    className={styles.controlAction}
+                    onClick={saveRecording}
+                    disabled={phase === 'saving'}
+                  >
+                    <span className={styles.controlCircle}>
+                      <Check size={20} strokeWidth={2.2} />
+                    </span>
+                    <span className={styles.controlLabel}>{phase === 'saving' ? 'Saving' : 'Save'}</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button type='button' className={styles.startRecordingButton} onClick={() => void startRecording()}>
+                <span className={styles.startIconWrap}>
+                  <Mic size={38} strokeWidth={2.1} />
+                </span>
+                <span className={styles.startLabel}>START RECORDING</span>
+              </button>
+            )}
           </section>
-        ) : (
-          <button type='button' className={styles.recordButton} onClick={() => void startRecording()}>
-            <Mic size={32} strokeWidth={2.2} />
-            <span className={styles.recordLabel}>
-              <span className={styles.recordLabelLine}>START</span>
-              <span className={styles.recordLabelLine}>RECORDING</span>
-            </span>
-          </button>
-        )}
+
+          {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
+        </section>
+
+        <div className={styles.recentShell}>
+          <RecentRecordingsList
+            isLoadingRecordings={isLoadingRecordings}
+            recordingsError={recordingsError}
+            recordings={recordings}
+            onSelectRecording={selectRecording}
+          />
+        </div>
       </main>
-
-      {isSessionActive ? (
-        <footer className={styles.controls}>
-          <button
-            type='button'
-            className={styles.controlAction}
-            onClick={cancelRecording}
-            disabled={phase === 'saving'}
-          >
-            <span className={styles.controlCircle}>
-              <X size={24} strokeWidth={2.2} />
-            </span>
-            <span className={styles.controlLabel}>Cancel</span>
-          </button>
-
-          <button
-            type='button'
-            className={styles.controlAction}
-            onClick={togglePause}
-            disabled={phase === 'saving'}
-          >
-            <span className={styles.controlCircle}>
-              {phase === 'paused' ? (
-                <Play size={23} strokeWidth={2.2} />
-              ) : (
-                <Pause size={23} strokeWidth={2.2} />
-              )}
-            </span>
-            <span className={styles.controlLabel}>{phase === 'paused' ? 'Resume' : 'Pause'}</span>
-          </button>
-
-          <button
-            type='button'
-            className={styles.controlAction}
-            onClick={saveRecording}
-            disabled={phase === 'saving'}
-          >
-            <span className={styles.controlCircle}>
-              <Check size={23} strokeWidth={2.2} />
-            </span>
-            <span className={styles.controlLabel}>{phase === 'saving' ? 'Saving' : 'Save'}</span>
-          </button>
-        </footer>
-      ) : null}
-
-      {errorMessage ? <p className={styles.errorText}>{errorMessage}</p> : null}
     </div>
   )
 }
