@@ -1,4 +1,5 @@
-import { ArrowLeft, LoaderCircle, Send } from 'lucide-react'
+import { ArrowLeft, Check, Copy, Download, Ellipsis, LoaderCircle, Send } from 'lucide-react'
+import { Document, Packer, Paragraph, TextRun } from 'docx'
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent, type SVGProps } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -132,6 +133,132 @@ function isVisibleChatMessage(message: ChatMessage): boolean {
   return true
 }
 
+function getTranscriptRoleLabel(role: string): string {
+  return role === 'user' ? 'User' : 'Assistant'
+}
+
+function formatTranscriptTimestamp(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  return date.toLocaleString([], {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function normalizeTranscriptMessageText(value: string): string {
+  const trimmed = value.trim()
+  return trimmed || '[No text content]'
+}
+
+function buildPlainTextChatTranscript(
+  chatTitle: string,
+  chatSubtitle: string,
+  messages: ChatMessage[],
+): string {
+  const lines: string[] = [chatTitle]
+
+  if (chatSubtitle.trim()) {
+    lines.push(`Agent: ${chatSubtitle}`)
+  }
+
+  lines.push(`Exported at: ${new Date().toISOString()}`)
+  lines.push('')
+
+  for (const message of messages) {
+    const text = normalizeTranscriptMessageText(extractMessageText(message.content))
+    const roleLabel = getTranscriptRoleLabel(message.role)
+    const timestamp = formatTranscriptTimestamp(message.createdAt)
+
+    lines.push(`[${timestamp}] ${roleLabel}`)
+    lines.push(text)
+    lines.push('')
+  }
+
+  return lines.join('\n')
+}
+
+function buildTranscriptFileStem(chatTitle: string): string {
+  const normalized = chatTitle
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return normalized || 'chat'
+}
+
+function buildDocxChatTranscript(
+  chatTitle: string,
+  chatSubtitle: string,
+  messages: ChatMessage[],
+): Document {
+  const title = chatTitle.trim() || 'Chat'
+  const subtitle = chatSubtitle.trim()
+  const exportedAt = new Date().toISOString()
+  const children: Paragraph[] = []
+
+  children.push(
+    new Paragraph({
+      children: [new TextRun({ text: title, bold: true, size: 32 })],
+      spacing: { after: 120 },
+    }),
+  )
+
+  if (subtitle) {
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: `Agent: ${subtitle}`, color: '4B5563' })],
+        spacing: { after: 40 },
+      }),
+    )
+  }
+
+  children.push(
+    new Paragraph({
+      children: [new TextRun({ text: `Exported at: ${exportedAt}`, color: '6B7280' })],
+      spacing: { after: 220 },
+    }),
+  )
+
+  for (const message of messages) {
+    const roleLabel = getTranscriptRoleLabel(message.role)
+    const timestamp = formatTranscriptTimestamp(message.createdAt)
+    const text = normalizeTranscriptMessageText(extractMessageText(message.content))
+
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: `${roleLabel} • ${timestamp}`, bold: true })],
+        spacing: { before: 120, after: 60 },
+      }),
+    )
+
+    const lines = text.split('\n')
+    for (const line of lines) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun(line || ' ')],
+          spacing: { after: 20 },
+        }),
+      )
+    }
+
+    children.push(new Paragraph({ spacing: { after: 80 } }))
+  }
+
+  return new Document({
+    sections: [
+      {
+        children,
+      },
+    ],
+  })
+}
+
 export function ChatPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -158,9 +285,13 @@ export function ChatPage() {
   const [streamingContent, setStreamingContent] = useState('')
   const [sendError, setSendError] = useState<string | null>(null)
   const [isPreparingRecap, setIsPreparingRecap] = useState(false)
+  const [hasCopiedChat, setHasCopiedChat] = useState(false)
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false)
 
   const sentInitialByChatRef = useRef<Record<string, boolean>>({})
   const scrollContainerRef = useRef<HTMLElement | null>(null)
+  const copyResetTimeoutRef = useRef<number | null>(null)
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     let isCancelled = false
@@ -231,6 +362,44 @@ export function ChatPage() {
       behavior: 'smooth',
     })
   }, [messages, streamingContent])
+
+  useEffect(
+    () => () => {
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current)
+        copyResetTimeoutRef.current = null
+      }
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (!isActionsMenuOpen) return
+
+    const onPointerDown = (event: MouseEvent): void => {
+      const menuElement = actionsMenuRef.current
+      const targetNode = event.target as Node | null
+      if (!menuElement || !targetNode) return
+
+      if (!menuElement.contains(targetNode)) {
+        setIsActionsMenuOpen(false)
+      }
+    }
+
+    const onKeyDown = (event: globalThis.KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        setIsActionsMenuOpen(false)
+      }
+    }
+
+    window.addEventListener('mousedown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('mousedown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isActionsMenuOpen])
 
   const sendMessage = useCallback(
     async (content: MessageContent, options?: { hideUserMessage?: boolean }): Promise<void> => {
@@ -346,6 +515,7 @@ export function ChatPage() {
   const assistantColorClass = assistantVisualStyle.colorClass
 
   const canSubmit = draft.trim().length > 0 && !isSending
+  const hasTranscriptMessages = visibleMessages.length > 0
 
   const submitDraft = (): void => {
     const trimmed = draft.trim()
@@ -360,6 +530,53 @@ export function ChatPage() {
 
     event.preventDefault()
     submitDraft()
+  }
+
+  const copyChatTranscript = async (): Promise<void> => {
+    if (!hasTranscriptMessages || !navigator.clipboard?.writeText) return
+
+    setIsActionsMenuOpen(false)
+    const transcript = buildPlainTextChatTranscript(chatTitle, chatSubtitle, visibleMessages)
+
+    try {
+      await navigator.clipboard.writeText(transcript)
+      setHasCopiedChat(true)
+
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current)
+      }
+
+      copyResetTimeoutRef.current = window.setTimeout(() => {
+        setHasCopiedChat(false)
+      }, 1800)
+    } catch {
+      setHasCopiedChat(false)
+    }
+  }
+
+  const exportChatTranscriptAsDocx = async (): Promise<void> => {
+    if (!hasTranscriptMessages) return
+
+    setIsActionsMenuOpen(false)
+
+    try {
+      const document = buildDocxChatTranscript(chatTitle, chatSubtitle, visibleMessages)
+      const blob = await Packer.toBlob(document)
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      const fileName = `${buildTranscriptFileStem(chatTitle)}-${timestamp}.docx`
+      const objectUrl = window.URL.createObjectURL(blob)
+      const anchor = window.document.createElement('a')
+
+      anchor.href = objectUrl
+      anchor.download = fileName
+      anchor.click()
+
+      window.setTimeout(() => {
+        window.URL.revokeObjectURL(objectUrl)
+      }, 0)
+    } catch (error) {
+      console.error('Failed to export chat transcript as DOCX.', error)
+    }
   }
 
   return (
@@ -379,6 +596,45 @@ export function ChatPage() {
             <div className={styles.pageHeaderText}>
               <h1 className={styles.pageTitle}>{chatTitle}</h1>
               <p className={styles.pageSubtitle}>{chatSubtitle}</p>
+            </div>
+
+            <div ref={actionsMenuRef} className={styles.pageHeaderActions}>
+              <button
+                type='button'
+                className={styles.actionsToggleButton}
+                onClick={() => setIsActionsMenuOpen((current) => !current)}
+                aria-haspopup='menu'
+                aria-expanded={isActionsMenuOpen}
+                aria-label='Chat actions'
+              >
+                <Ellipsis size={18} />
+              </button>
+
+              {isActionsMenuOpen ? (
+                <div className={styles.actionsMenu} role='menu' aria-label='Chat actions'>
+                  <button
+                    type='button'
+                    className={styles.actionsMenuItem}
+                    role='menuitem'
+                    onClick={() => void copyChatTranscript()}
+                    disabled={!hasTranscriptMessages}
+                  >
+                    {hasCopiedChat ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{hasCopiedChat ? 'Copied' : 'Copy'}</span>
+                  </button>
+
+                  <button
+                    type='button'
+                    className={styles.actionsMenuItem}
+                    role='menuitem'
+                    onClick={() => void exportChatTranscriptAsDocx()}
+                    disabled={!hasTranscriptMessages}
+                  >
+                    <Download size={14} />
+                    <span>Export DOCX</span>
+                  </button>
+                </div>
+              ) : null}
             </div>
           </header>
 
