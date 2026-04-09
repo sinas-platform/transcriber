@@ -1,7 +1,6 @@
 import { ArrowLeft, Plus, Save, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { size } from '@floating-ui/react'
-import { Select, type SelectOption } from '../components/Select/Select'
 import DatePicker from 'react-datepicker'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
@@ -24,7 +23,6 @@ type FormState = {
   date: string
   time: string
   location: string
-  language: string
   members: EditableMember[]
 }
 
@@ -33,53 +31,8 @@ const METADATA_KEY = {
   date: 'details_date',
   time: 'details_time',
   location: 'details_location',
-  language: 'details_language',
   members: 'details_members',
 } as const
-
-const LANGUAGE_OPTIONS: SelectOption[] = [
-  'English',
-  'German',
-  'Dutch',
-  'Swedish',
-  'Norwegian',
-  'Danish',
-  'French',
-  'Spanish',
-  'Portuguese',
-  'Italian',
-  'Romanian',
-  'Catalan',
-  'Russian',
-  'Polish',
-  'Czech',
-  'Slovak',
-  'Ukrainian',
-  'Bulgarian',
-  'Serbian',
-  'Croatian',
-  'Bosnian',
-  'Slovenian',
-  'Macedonian',
-  'Lithuanian',
-  'Latvian',
-  'Greek',
-  'Irish',
-  'Welsh',
-  'Scottish Gaelic',
-  'Breton',
-  'Finnish',
-  'Hungarian',
-  'Estonian',
-  'Basque',
-  'Albanian',
-  'Armenian',
-  'Maltese',
-  'Flemish',
-].map((language) => ({
-  value: language,
-  label: language,
-}))
 
 let nextMemberId = 1
 
@@ -191,7 +144,6 @@ function readInitialForm(recording: RecordingFile): FormState {
     date: readString(metadata, METADATA_KEY.date) || toInputDate(recordedAt),
     time: readString(metadata, METADATA_KEY.time) || toInputTime(recordedAt),
     location: readString(metadata, METADATA_KEY.location),
-    language: readString(metadata, METADATA_KEY.language),
     members: readMembers(metadata),
   }
 }
@@ -225,7 +177,6 @@ export function RecordingDetailsEditPage() {
     date: '',
     time: '',
     location: '',
-    language: '',
     members: [createMember()],
   })
 
@@ -319,8 +270,8 @@ export function RecordingDetailsEditPage() {
     setMetadataValue(nextMetadata, METADATA_KEY.date, form.date)
     setMetadataValue(nextMetadata, METADATA_KEY.time, form.time)
     setMetadataValue(nextMetadata, METADATA_KEY.location, form.location.trim())
-    setMetadataValue(nextMetadata, METADATA_KEY.language, form.language.trim())
     setMetadataValue(nextMetadata, METADATA_KEY.members, members.length ? members : null)
+    delete nextMetadata.details_language
 
     setIsSaving(true)
     setSaveError(null)
@@ -471,21 +422,6 @@ export function RecordingDetailsEditPage() {
                 value={form.location}
                 onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
                 placeholder='Office or remote'
-              />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label htmlFor='details-language' className={styles.label}>
-                Language
-              </label>
-              <Select
-                id='details-language'
-                placeholder='Select language'
-                searchable
-                searchPlaceholder='Search languages'
-                options={LANGUAGE_OPTIONS}
-                value={form.language}
-                onChange={(nextValue) => setForm((current) => ({ ...current, language: nextValue }))}
               />
             </div>
 

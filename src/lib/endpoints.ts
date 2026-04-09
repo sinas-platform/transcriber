@@ -36,6 +36,7 @@ export const endpoints = {
     agents: `${CONFIG_API_PREFIX}/agents`,
     agentByName: (namespace: string, name: string) =>
       `${CONFIG_API_PREFIX}/agents/${encode(namespace)}/${encode(name)}`,
+    roles: `${CONFIG_API_PREFIX}/roles`,
     messages: `${CONFIG_API_PREFIX}/messages`,
     messageStats: `${CONFIG_API_PREFIX}/messages/stats`,
     skills: `${CONFIG_API_PREFIX}/skills`,

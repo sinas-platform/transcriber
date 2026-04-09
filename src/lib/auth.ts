@@ -10,6 +10,8 @@ import { endpoints } from './endpoints'
 export interface AuthUser {
   id: string
   email: string
+  role?: string | null
+  roles?: string[]
   is_active?: boolean
   created_at: string
   last_login_at?: string | null
@@ -34,6 +36,10 @@ interface RefreshResponse {
   access_token: string
   token_type: string
   expires_in: number
+}
+
+interface RoleResponse {
+  name: string
 }
 
 interface StoredSession {
@@ -91,6 +97,13 @@ export async function verifyOtp(sessionId: string, otpCode: string): Promise<Aut
 export async function getCurrentUser(): Promise<AuthUser> {
   const response = await runtimeApi.get<AuthUser>(endpoints.auth.me)
   return response.data
+}
+
+export async function listCurrentUserRoles(): Promise<string[]> {
+  const response = await runtimeApi.get<RoleResponse[]>(endpoints.config.roles)
+  return response.data
+    .map((role) => role.name)
+    .filter((name): name is string => typeof name === 'string' && name.trim().length > 0)
 }
 
 export async function refreshAccessToken(refreshToken: string): Promise<{

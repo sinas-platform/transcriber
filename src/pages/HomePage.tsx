@@ -1,8 +1,10 @@
-import { Check, Mic, Pause, Play, Settings, UserRound, X } from 'lucide-react'
+import { Check, LogOut, Mic, Pause, Play, Settings, UserRound, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RecentRecordingsList } from '../components/Home/RecentRecordingsList'
+import { useAuth } from '../features/auth/use-auth'
 import sinasLogo from '../icons/sinas-logo-small.svg'
+import { listCurrentUserRoles } from '../lib/auth'
 import {
   getRecordingsTarget,
   listRecordings,
@@ -58,8 +60,47 @@ function getApiErrorMessage(error: unknown, fallback: string): string {
   return fallback
 }
 
+function normalizeRoleName(role: string): string {
+  return role.trim().toLowerCase().replace(/[\s_-]+/g, '')
+}
+
+function getRolePriority(role: string): number {
+  const normalized = normalizeRoleName(role)
+
+  if (
+    normalized === 'admin' ||
+    normalized === 'admins' ||
+    normalized === 'administrator' ||
+    normalized === 'administrators'
+  ) {
+    return 3
+  }
+
+  if (normalized === 'user' || normalized === 'users') {
+    return 2
+  }
+
+  if (normalized === 'guest' || normalized === 'guestuser' || normalized === 'guestusers') {
+    return 1
+  }
+
+  return 0
+}
+
+function pickHighestPriorityRole(roles: string[]): string | null {
+  const cleaned = roles.map((role) => role.trim()).filter((role) => role.length > 0)
+  if (cleaned.length === 0) return null
+
+  return [...cleaned].sort((a, b) => {
+    const priorityDifference = getRolePriority(b) - getRolePriority(a)
+    if (priorityDifference !== 0) return priorityDifference
+    return a.localeCompare(b)
+  })[0]
+}
+
 export function HomePage() {
   const navigate = useNavigate()
+  const { session, logout } = useAuth()
 
   const [phase, setPhase] = useState<RecordingPhase>('idle')
   const [elapsedMs, setElapsedMs] = useState(0)
@@ -67,10 +108,13 @@ export function HomePage() {
   const [isLoadingRecordings, setIsLoadingRecordings] = useState(false)
   const [recordingsError, setRecordingsError] = useState<string | null>(null)
   const [recordings, setRecordings] = useState<RecordingFile[]>([])
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [roleLabel, setRoleLabel] = useState('No role')
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
+  const profileMenuRef = useRef<HTMLDivElement | null>(null)
   const elapsedBeforeCurrentSegmentRef = useRef(0)
   const segmentStartedAtRef = useRef<number | null>(null)
   const pendingStopActionRef = useRef<'cancel' | 'save' | null>(null)
@@ -79,6 +123,16 @@ export function HomePage() {
   const recordingsTarget = useMemo(() => getRecordingsTarget(), [])
   const isSessionActive = phase !== 'idle'
   const timerLabel = useMemo(() => formatElapsedTime(elapsedMs), [elapsedMs])
+  const userEmail = session?.user.email ?? 'Unknown email'
+
+  const closeProfileMenu = useCallback((): void => {
+    setIsProfileMenuOpen(false)
+  }, [])
+
+  const handleLogout = (): void => {
+    closeProfileMenu()
+    logout()
+  }
 
   const loadRecordings = useCallback(async (): Promise<void> => {
     setIsLoadingRecordings(true)
@@ -316,6 +370,75 @@ export function HomePage() {
   }, [loadRecordings])
 
   useEffect(() => {
+    if (!session?.user) {
+      setRoleLabel('No role')
+      return
+    }
+
+    const user = session.user
+    const rolesFromSession = Array.isArray(user.roles)
+      ? user.roles.filter((role) => role.trim().length > 0)
+      : []
+    const rolesToRank = [...rolesFromSession]
+
+    if (typeof user.role === 'string' && user.role.trim()) {
+      rolesToRank.push(user.role)
+    }
+
+    const roleFromSession = pickHighestPriorityRole(rolesToRank)
+
+    if (roleFromSession) {
+      setRoleLabel(roleFromSession)
+      return
+    }
+
+    let cancelled = false
+
+    const loadRole = async (): Promise<void> => {
+      try {
+        const fetchedRoles = await listCurrentUserRoles()
+        if (cancelled) return
+        setRoleLabel(pickHighestPriorityRole(fetchedRoles) ?? 'No role')
+      } catch {
+        if (cancelled) return
+        setRoleLabel('No role')
+      }
+    }
+
+    void loadRole()
+
+    return () => {
+      cancelled = true
+    }
+  }, [session])
+
+  useEffect(() => {
+    if (!isProfileMenuOpen) return
+
+    const handleWindowPointerDown = (event: PointerEvent): void => {
+      const menuRoot = profileMenuRef.current
+      if (!menuRoot) return
+
+      if (menuRoot.contains(event.target as Node)) return
+      setIsProfileMenuOpen(false)
+    }
+
+    const handleWindowKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        setIsProfileMenuOpen(false)
+      }
+    }
+
+    window.addEventListener('pointerdown', handleWindowPointerDown)
+    window.addEventListener('keydown', handleWindowKeyDown)
+
+    return () => {
+      window.removeEventListener('pointerdown', handleWindowPointerDown)
+      window.removeEventListener('keydown', handleWindowKeyDown)
+    }
+  }, [isProfileMenuOpen])
+
+  useEffect(() => {
     return () => {
       const recorder = mediaRecorderRef.current
       if (recorder) {
@@ -340,13 +463,42 @@ export function HomePage() {
         </div>
 
         <div className={styles.headerActions}>
-          <span className={styles.avatarBadge} aria-hidden='true'>
-            <UserRound size={19} strokeWidth={2.1} />
-          </span>
-
           <button type='button' className={styles.iconAction} aria-label='Settings'>
             <Settings size={19} strokeWidth={2.1} />
           </button>
+
+          <div className={styles.profileMenuAnchor} ref={profileMenuRef}>
+            <button
+              type='button'
+              className={styles.avatarButton}
+              aria-label='Open profile menu'
+              aria-haspopup='menu'
+              aria-expanded={isProfileMenuOpen}
+              onClick={() => setIsProfileMenuOpen((isOpen) => !isOpen)}
+            >
+              <UserRound size={19} strokeWidth={2.1} />
+            </button>
+
+            {isProfileMenuOpen ? (
+              <div className={styles.profileMenu} role='menu' aria-label='Profile menu'>
+                <div className={styles.profileMenuDetails}>
+                  <p className={styles.profileEmail}>{userEmail}</p>
+                  <p className={styles.profileRole}>Role: {roleLabel}</p>
+                </div>
+
+                <button
+                  type='button'
+                  className={styles.logoutButton}
+                  role='menuitem'
+                  aria-label='Log out'
+                  onClick={handleLogout}
+                >
+                  <LogOut size={17} strokeWidth={2.2} />
+                  <span>Log out</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
 

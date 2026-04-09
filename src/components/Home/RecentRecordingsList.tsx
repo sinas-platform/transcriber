@@ -248,10 +248,9 @@ export function RecentRecordingsList({
 
                   <div className={styles.itemStatus}>
                     <span className={`${styles.statusLabel} ${transcriptionStatusClass}`}>
-                      <span className={styles.statusDot} />
                       {transcriptionStatus.label}
                     </span>
-                    <span className={styles.itemIndicator} aria-hidden='true' />
+                    <span className={`${styles.itemIndicator} ${transcriptionStatusClass}`} aria-hidden='true' />
                   </div>
                 </button>
               </li>

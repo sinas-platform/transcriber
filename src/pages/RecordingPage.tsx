@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronRight, Copy, Pencil } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Copy, Pencil, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type SVGProps } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar/Sidebar'
@@ -30,6 +30,7 @@ import SemicirclesHorizontalPlaceholder from '../icons/agentsPlaceholders/semici
 import SemicirclesVerticalPlaceholder from '../icons/agentsPlaceholders/semicircles-vertical.svg?react'
 import SparklePlaceholder from '../icons/agentsPlaceholders/sparkle.svg?react'
 import {
+  deleteRecording,
   downloadRecordingContent,
   getRecordingsTarget,
   listRecordings,
@@ -105,13 +106,6 @@ function readMetadataDetailsTime(metadata: Record<string, unknown>): string | nu
 
 function readMetadataDetailsLocation(metadata: Record<string, unknown>): string | null {
   const value = metadata.details_location
-  if (typeof value !== 'string') return null
-  const normalized = value.trim()
-  return normalized || null
-}
-
-function readMetadataDetailsLanguage(metadata: Record<string, unknown>): string | null {
-  const value = metadata.details_language
   if (typeof value !== 'string') return null
   const normalized = value.trim()
   return normalized || null
@@ -410,6 +404,9 @@ export function RecordingPage() {
   const [agentsError, setAgentsError] = useState<string | null>(null)
   const [agentChatError, setAgentChatError] = useState<string | null>(null)
   const [isOpeningAgentChatId, setIsOpeningAgentChatId] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeletingRecording, setIsDeletingRecording] = useState(false)
+  const [deleteRecordingError, setDeleteRecordingError] = useState<string | null>(null)
 
   const playbackObjectUrlRef = useRef<string | null>(null)
   const copyResetTimeoutRef = useRef<number | null>(null)
@@ -439,7 +436,6 @@ export function RecordingPage() {
         date: null,
         time: null,
         location: null,
-        language: null,
         members: [] as RecordingMember[],
         hasAny: false,
       }
@@ -449,15 +445,13 @@ export function RecordingPage() {
     const date = formatDetailsDate(readMetadataDetailsDate(metadata))
     const time = readMetadataDetailsTime(metadata)
     const location = readMetadataDetailsLocation(metadata)
-    const language = readMetadataDetailsLanguage(metadata)
     const members = readMetadataDetailsMembers(metadata)
-    const hasAny = Boolean(date || time || location || language || members.length > 0)
+    const hasAny = Boolean(date || time || location || members.length > 0)
 
     return {
       date,
       time,
       location,
-      language,
       members,
       hasAny,
     }
@@ -517,6 +511,9 @@ export function RecordingPage() {
       setAgentsError(null)
       setAgentChatError(null)
       setIsOpeningAgentChatId(null)
+      setIsDeleteDialogOpen(false)
+      setIsDeletingRecording(false)
+      setDeleteRecordingError(null)
       revokePlaybackObjectUrl()
 
       if (!recordingId) {
@@ -736,6 +733,20 @@ export function RecordingPage() {
   }, [recordingsTarget, selectedRecording])
 
   useEffect(() => {
+    if (!isDeleteDialogOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || isDeletingRecording) return
+      setIsDeleteDialogOpen(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isDeleteDialogOpen, isDeletingRecording])
+
+  useEffect(() => {
     return () => {
       revokePlaybackObjectUrl()
       clearCopyResetTimer()
@@ -795,6 +806,39 @@ export function RecordingPage() {
     }
   }
 
+  const openDeleteDialog = (): void => {
+    if (isDeletingRecording) return
+    setDeleteRecordingError(null)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const closeDeleteDialog = (): void => {
+    if (isDeletingRecording) return
+    setIsDeleteDialogOpen(false)
+  }
+
+  const confirmDeleteRecording = async (): Promise<void> => {
+    if (!selectedRecording || isDeletingRecording) return
+
+    setDeleteRecordingError(null)
+    setIsDeletingRecording(true)
+
+    try {
+      await deleteRecording({
+        namespace: selectedRecording.namespace,
+        collection: selectedRecording.collection,
+        name: selectedRecording.name,
+      })
+
+      setIsDeleteDialogOpen(false)
+      void navigate('/', { replace: true })
+    } catch (error) {
+      setDeleteRecordingError(getApiErrorMessage(error, 'Could not delete this recording.'))
+    } finally {
+      setIsDeletingRecording(false)
+    }
+  }
+
   if (view === 'sidebar') {
     return (
       <Sidebar
@@ -837,21 +881,39 @@ export function RecordingPage() {
         {!isLoadingRecording && !recordingError && selectedRecording ? (
           <>
             <section className={styles.pageHeaderSection}>
+              <button type='button' className={styles.backButton} onClick={() => void navigate('/')}>
+                <ArrowLeft size={16} />
+                Back
+              </button>
+
               <div className={styles.pageHeaderRow}>
                 <h1 className={styles.pageTitle}>{selectedRecordingLabel}</h1>
-                <button
-                  type='button'
-                  className={styles.editDetailsButton}
-                  onClick={() => void navigate(`/recordings/${selectedRecording.id}/details/edit`)}
-                  aria-label='Edit recording details'
-                >
-                  <Pencil size={16} />
-                </button>
+                <div className={styles.pageHeaderActions}>
+                  <button
+                    type='button'
+                    className={styles.editDetailsButton}
+                    onClick={() => void navigate(`/recordings/${selectedRecording.id}/details/edit`)}
+                    aria-label='Edit recording details'
+                    disabled={isDeletingRecording}
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    type='button'
+                    className={styles.deleteRecordingButton}
+                    onClick={openDeleteDialog}
+                    aria-label='Delete recording'
+                    disabled={isDeletingRecording}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
               <p className={styles.pageMeta}>
                 {selectedRecordingDuration}
                 {selectedRecordingTimestamp ? ` • ${selectedRecordingTimestamp}` : ''}
               </p>
+              {deleteRecordingError ? <p className={styles.sectionError}>{deleteRecordingError}</p> : null}
             </section>
 
             <section className={styles.detailSection}>
@@ -875,12 +937,6 @@ export function RecordingPage() {
                     <div className={styles.metadataRow}>
                       <span className={styles.metadataLabel}>Location</span>
                       <span className={styles.metadataValue}>{selectedRecordingDetails.location}</span>
-                    </div>
-                  ) : null}
-                  {selectedRecordingDetails.language ? (
-                    <div className={styles.metadataRow}>
-                      <span className={styles.metadataLabel}>Language</span>
-                      <span className={styles.metadataValue}>{selectedRecordingDetails.language}</span>
                     </div>
                   ) : null}
                   {selectedRecordingDetails.members.length > 0 ? (
@@ -960,7 +1016,7 @@ export function RecordingPage() {
                       className={styles.sectionLinkButton}
                       onClick={() => setIsTranscriptionExpanded((value) => !value)}
                     >
-                      {isTranscriptionExpanded ? 'Show less' : 'See all'}
+                      {isTranscriptionExpanded ? 'Show less' : 'Show more'}
                     </button>
                   ) : null}
                   <button
@@ -1064,6 +1120,45 @@ export function RecordingPage() {
           </>
         ) : null}
       </main>
+
+      {isDeleteDialogOpen && selectedRecording ? (
+        <div className={styles.deleteDialogOverlay} onClick={closeDeleteDialog}>
+          <div
+            className={styles.deleteDialog}
+            role='dialog'
+            aria-modal='true'
+            aria-labelledby='delete-recording-title'
+            aria-describedby='delete-recording-description'
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id='delete-recording-title' className={styles.deleteDialogTitle}>
+              Delete this recording?
+            </h2>
+            <p id='delete-recording-description' className={styles.deleteDialogDescription}>
+              This will permanently remove the audio and saved details. This action cannot be undone.
+            </p>
+            <div className={styles.deleteDialogActions}>
+              <button
+                type='button'
+                className={styles.deleteDialogCancelButton}
+                onClick={closeDeleteDialog}
+                disabled={isDeletingRecording}
+              >
+                Cancel
+              </button>
+              <button
+                type='button'
+                className={styles.deleteDialogConfirmButton}
+                onClick={() => void confirmDeleteRecording()}
+                disabled={isDeletingRecording}
+              >
+                <Trash2 size={14} />
+                {isDeletingRecording ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -282,3 +282,11 @@ export async function updateRecordingMetadata(
     payload,
   )
 }
+
+export async function deleteRecording(
+  recording: Pick<RecordingFile, 'namespace' | 'collection' | 'name'>,
+): Promise<void> {
+  await runtimeApi.delete(
+    endpoints.files.file(recording.namespace, recording.collection, recording.name),
+  )
+}

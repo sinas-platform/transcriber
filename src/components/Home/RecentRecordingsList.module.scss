@@ -130,7 +130,6 @@
 .statusLabel {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   white-space: nowrap;
   font-size: 0.95rem;
   font-weight: 400;
@@ -180,7 +179,7 @@
   width: 30px;
   height: 30px;
   border-radius: 12px;
-  background: #f5f6f8;
+  background: color-mix(in srgb, currentColor 18%, #ffffff);
   position: relative;
 }
 
@@ -192,12 +191,12 @@
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: #98a2b3;
+  background: currentColor;
 }
 
 @media (max-width: 26.25rem) {
   .title {
-    font-size: 1.35rem;
+    font-size: 1.15rem;
   }
 
   .toggleButton {
@@ -251,7 +250,7 @@
   }
 
   .itemIndicator {
-    background: #1f2937;
+    background: color-mix(in srgb, currentColor 28%, #1f2937);
   }
 
   .itemIndicator::after {
