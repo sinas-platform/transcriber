@@ -13,6 +13,7 @@ import {
 } from './auth-session-storage'
 import { env } from './env'
 import { endpoints } from './endpoints'
+import { getWorkspaceUrl } from './workspace'
 
 interface RefreshResponse {
   access_token: string
@@ -28,15 +29,26 @@ let refreshQueue: Array<{
   reject: (error: unknown) => void
 }> = []
 
-function normalizeBaseUrl(baseUrl?: string): string {
-  const fromEnv =
-    env('VITE_DEFAULT_WORKSPACE_URL')?.trim() || env('VITE_API_BASE_URL')?.trim()
-  const fallback =
-    window.location.hostname === 'localhost'
-      ? 'http://localhost:8000'
-      : `${window.location.protocol}//${window.location.host}`
+function normalizeBaseUrl(baseUrl?: string): string | undefined {
+  const normalizedBaseUrl = (baseUrl ?? '').trim().replace(/\/+$/, '')
+  if (normalizedBaseUrl) return normalizedBaseUrl
 
-  return String(baseUrl || fromEnv || fallback).replace(/\/+$/, '')
+  const workspaceUrl = getWorkspaceUrl().trim().replace(/\/+$/, '')
+  if (workspaceUrl) return workspaceUrl
+
+  const fromEnv = env('VITE_DEFAULT_WORKSPACE_URL')?.trim() || env('VITE_API_BASE_URL')?.trim()
+  const normalizedEnv = (fromEnv ?? '').trim().replace(/\/+$/, '')
+
+  return normalizedEnv || undefined
+}
+
+function requireConfiguredBaseUrl(): string {
+  const configured = String(runtimeApi.defaults.baseURL ?? '').trim().replace(/\/+$/, '')
+  if (!configured) {
+    throw new Error('Workspace URL is not configured. Please select a workspace first.')
+  }
+
+  return configured
 }
 
 function setHeader(
@@ -50,6 +62,11 @@ function setHeader(
 }
 
 function authInterceptor(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
+  const configured = String(config.baseURL ?? runtimeApi.defaults.baseURL ?? '').trim()
+  if (!configured) {
+    throw new Error('Workspace URL is not configured. Please select a workspace first.')
+  }
+
   const token = getAccessToken()
   const apiKey = env('VITE_X_API_KEY')?.trim()
 
@@ -96,7 +113,7 @@ async function requestAccessTokenRefresh(): Promise<string> {
 
   const apiKey = env('VITE_X_API_KEY')?.trim()
   const refreshResponse = await axios.post<RefreshResponse>(
-    `${String(runtimeApi.defaults.baseURL).replace(/\/+$/, '')}${endpoints.auth.refresh}`,
+    `${requireConfiguredBaseUrl()}${endpoints.auth.refresh}`,
     {
       refresh_token: session.refreshToken,
     },
@@ -180,7 +197,7 @@ export const runtimeApi = attachInterceptors(
 
 export const configApi = attachInterceptors(
   axios.create({
-    baseURL: `${baseURL}/api/v1`,
+    baseURL: baseURL ? `${baseURL}/api/v1` : undefined,
     headers: {
       'Content-Type': 'application/json',
     },
@@ -190,7 +207,7 @@ export const configApi = attachInterceptors(
 export function setApiBaseUrl(nextBaseUrl?: string): void {
   const next = normalizeBaseUrl(nextBaseUrl)
   runtimeApi.defaults.baseURL = next
-  configApi.defaults.baseURL = `${next}/api/v1`
+  configApi.defaults.baseURL = next ? `${next}/api/v1` : undefined
 }
 
 export function setAccessToken(token: string | null): void {
