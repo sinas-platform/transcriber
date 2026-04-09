@@ -113,6 +113,42 @@
   color: var(--color-text-secondary);
 }
 
+.workspaceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.workspaceLabel {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.workspaceHost {
+  font-weight: 700;
+}
+
+.workspaceSwitchButton {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  padding: 0;
+}
+
+.workspaceSwitchButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .error {
   margin: 0.2rem 0 0;
   border: 1px solid rgba(220, 38, 38, 0.35);

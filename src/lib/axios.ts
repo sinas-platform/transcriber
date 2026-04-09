@@ -29,7 +29,8 @@ let refreshQueue: Array<{
 }> = []
 
 function normalizeBaseUrl(baseUrl?: string): string {
-  const fromEnv = env('VITE_API_BASE_URL')?.trim()
+  const fromEnv =
+    env('VITE_DEFAULT_WORKSPACE_URL')?.trim() || env('VITE_API_BASE_URL')?.trim()
   const fallback =
     window.location.hostname === 'localhost'
       ? 'http://localhost:8000'

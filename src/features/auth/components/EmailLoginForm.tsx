@@ -7,6 +7,8 @@ interface EmailLoginFormProps {
   loading: boolean
   emailError?: string
   error?: string
+  workspaceLabel: string
+  onSwitchWorkspace: () => void
   onEmailChange: (nextValue: string) => void
   onSubmit: SubmitEventHandler<HTMLFormElement>
 }
@@ -16,6 +18,8 @@ export function EmailLoginForm({
   loading,
   emailError,
   error,
+  workspaceLabel,
+  onSwitchWorkspace,
   onEmailChange,
   onSubmit,
 }: EmailLoginFormProps) {
@@ -43,6 +47,19 @@ export function EmailLoginForm({
       </button>
 
       <p className={styles.hint}>A one-time code will be sent to your email address.</p>
+      <div className={styles.workspaceRow}>
+        <p className={styles.workspaceLabel}>
+          Connected to: <span className={styles.workspaceHost}>{workspaceLabel}</span>
+        </p>
+        <button
+          className={styles.workspaceSwitchButton}
+          type="button"
+          onClick={onSwitchWorkspace}
+          disabled={loading}
+        >
+          Switch workspace
+        </button>
+      </div>
       {error ? <p className={styles.error}>{error}</p> : null}
     </form>
   )

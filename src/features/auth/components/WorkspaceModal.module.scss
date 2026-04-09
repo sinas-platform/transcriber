@@ -1,0 +1,136 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.5);
+  cursor: default;
+}
+
+.panel {
+  position: relative;
+  width: min(37.25rem, calc(100vw - 2rem));
+  margin: min(12vh, 6rem) auto 0;
+  border-radius: 2rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  padding: 2rem;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.closeButton {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-primary);
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.inputRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: transparent;
+}
+
+.protocol {
+  font-size: 0.92rem;
+  color: var(--color-text-secondary);
+  padding-left: 0.75rem;
+  white-space: nowrap;
+}
+
+.workspaceInput {
+  border: 0;
+  border-radius: 0;
+  padding-left: 0.4rem;
+}
+
+.workspaceInput:focus,
+.workspaceInput:focus-visible {
+  border: 0;
+}
+
+.saveButton {
+  border: 0;
+  border-left: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-primary);
+  padding: 0 1rem;
+  align-self: stretch;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.saveButton:not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+}
+
+.error {
+  margin: 0.75rem 0 0;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  background: rgba(220, 38, 38, 0.06);
+  color: rgba(160, 10, 10, 0.95);
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 43.75rem) {
+  .panel {
+    width: calc(100vw - 1.5rem);
+    margin-top: max(1rem, env(safe-area-inset-top));
+    border-radius: 1.25rem;
+    padding: 1.25rem 1rem 1rem;
+  }
+}

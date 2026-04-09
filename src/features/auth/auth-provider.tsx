@@ -11,12 +11,18 @@ import {
   verifyOtp,
   type AuthSession,
 } from '../../lib/auth'
+import { setApiBaseUrl } from '../../lib/axios'
+import { getWorkspaceUrl } from '../../lib/workspace'
 import { AuthContext, type AuthContextValue } from './auth-context'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => restoreAuthSession())
   const refreshTimerRef = useRef<number | null>(null)
   const refreshToken = session?.refreshToken ?? null
+
+  useEffect(() => {
+    setApiBaseUrl(getWorkspaceUrl() || undefined)
+  }, [])
 
   useEffect(() => {
     if (!refreshToken) return
