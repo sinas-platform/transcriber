@@ -555,13 +555,13 @@
 
 :global(html[data-theme='dark']) {
   .screen {
-    background: linear-gradient(180deg, #0b1220 0%, #070d18 100%);
+    background: #282828;
   }
 
   .pageHeaderSection,
   .detailSection,
   .agentCard {
-    background: #111827;
+    background: #333333;
     box-shadow: none;
   }
 
@@ -571,7 +571,7 @@
 
   .pageTitle,
   .sectionTitle {
-    color: #f8fafc;
+    color: #f6f6f6;
   }
 
   .pageMeta,
@@ -580,13 +580,13 @@
   .agentCardActionLabel,
   .metadataLabel,
   .metadataMemberRole {
-    color: #94a3b8;
+    color: #b9b9b9;
   }
 
   .metadataValue,
   .metadataMemberItem,
   .transcriptionText {
-    color: #e2e8f0;
+    color: #f1f1f1;
   }
 
   .sectionLinkButton {
@@ -594,30 +594,30 @@
   }
 
   .deleteDialog {
-    background: #111827;
-    border-color: color-mix(in srgb, #94a3b8 22%, #111827);
+    background: #333333;
+    border-color: color-mix(in srgb, #b9b9b9 22%, #333333);
     box-shadow:
-      0 20px 40px rgba(2, 6, 23, 0.48),
-      0 6px 12px rgba(2, 6, 23, 0.35);
+      0 20px 40px rgba(0, 0, 0, 0.48),
+      0 6px 12px rgba(0, 0, 0, 0.35);
   }
 
   .deleteDialogTitle {
-    color: #f8fafc;
+    color: #f6f6f6;
   }
 
   .deleteDialogDescription {
-    color: #cbd5e1;
+    color: #d0d0d0;
   }
 
   .deleteDialogCancelButton {
-    background: #0f172a;
-    border-color: color-mix(in srgb, #94a3b8 25%, #0f172a);
-    color: #e2e8f0;
+    background: #303030;
+    border-color: color-mix(in srgb, #b9b9b9 25%, #303030);
+    color: #f1f1f1;
   }
 
   .deleteDialogConfirmButton {
-    background: color-mix(in srgb, #dc2626 26%, #111827);
-    border-color: color-mix(in srgb, #f87171 40%, #111827);
+    background: color-mix(in srgb, #dc2626 26%, #333333);
+    border-color: color-mix(in srgb, #f87171 40%, #333333);
     color: #fecaca;
   }
 }

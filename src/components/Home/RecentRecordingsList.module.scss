@@ -279,35 +279,35 @@
 :global(html[data-theme='dark']) {
   .title,
   .itemTitle {
-    color: #f8fafc;
+    color: #f6f6f6;
   }
 
   .stateText,
   .itemMeta {
-    color: #94a3b8;
+    color: #b9b9b9;
   }
 
   .itemButton {
-    background: #111827;
+    background: #333333;
     box-shadow: none;
   }
 
   .allRecordingsButton {
-    border-color: color-mix(in srgb, #cbd5e1 28%, #111827);
-    background: #111827;
-    color: #f8fafc;
+    border-color: color-mix(in srgb, #d0d0d0 28%, #333333);
+    background: #333333;
+    color: #f6f6f6;
     box-shadow: none;
   }
 
   .allRecordingsIcon {
-    color: #cbd5e1;
+    color: #d0d0d0;
   }
 
   .itemIndicator {
-    background: color-mix(in srgb, currentColor 28%, #1f2937);
+    background: color-mix(in srgb, currentColor 28%, #464646);
   }
 
   .itemIndicator::after {
-    background: #9ca3af;
+    background: #b9b9b9;
   }
 }

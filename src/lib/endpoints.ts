@@ -54,4 +54,9 @@ export const endpoints = {
     publicFile: (namespace: string, collection: string, filename: string) =>
       `/files/public/${encode(namespace)}/${encode(collection)}/${encode(filename)}`,
   },
+
+  preferences: {
+    states: '/stores/default/preferences/states',
+    stateByKey: (key: string) => `/stores/default/preferences/states/${encode(key)}`,
+  },
 } as const

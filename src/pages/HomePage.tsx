@@ -466,7 +466,12 @@ export function HomePage() {
         </div>
 
         <div className={styles.headerActions}>
-          <button type='button' className={styles.iconAction} aria-label='Settings'>
+          <button
+            type='button'
+            className={styles.iconAction}
+            aria-label='Settings'
+            onClick={() => void navigate('/settings')}
+          >
             <Settings size={19} strokeWidth={2.1} />
           </button>
 

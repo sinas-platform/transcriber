@@ -13,6 +13,7 @@ interface SidebarProps {
   onNewRecording: () => void
   onSelectRecording: (recording: RecordingFile) => void
   onViewAllRecordings: () => void
+  onOpenSettings: () => void
   onLogout: () => void
 }
 
@@ -128,6 +129,7 @@ export function Sidebar({
   onNewRecording,
   onSelectRecording,
   onViewAllRecordings,
+  onOpenSettings,
   onLogout,
 }: SidebarProps) {
   const visibleRecordings = useMemo(() => {
@@ -218,7 +220,7 @@ export function Sidebar({
         </section>
 
         <footer className={styles.sidebarFooter}>
-          <button type='button' className={styles.sidebarFooterAction}>
+          <button type='button' className={styles.sidebarFooterAction} onClick={onOpenSettings}>
             <Settings size={18} />
             <span>Settings</span>
           </button>

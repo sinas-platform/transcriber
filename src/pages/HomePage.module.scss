@@ -466,35 +466,35 @@
 
 :global(html[data-theme='dark']) {
   .screen {
-    background: linear-gradient(180deg, #0b1220 0%, #070d18 100%);
-    color: #e2e8f0;
+    background: #282828;
+    color: #f1f1f1;
   }
 
   .topBar {
-    background: #111827;
+    background: #333333;
     box-shadow:
-      0 1px 0 rgba(148, 163, 184, 0.12),
-      0 8px 20px -18px rgba(2, 6, 23, 0.65);
+      0 1px 0 rgba(255, 255, 255, 0.1),
+      0 8px 20px -18px rgba(0, 0, 0, 0.55);
   }
 
   .brandText,
   .title,
   .startLabel,
   .recordingTimer {
-    color: #f8fafc;
+    color: #f6f6f6;
   }
 
   .subtitle,
   .controlLabel {
-    color: #94a3b8;
+    color: #b9b9b9;
   }
 
   .avatarBadge,
   .iconAction,
   .recorderCard,
   .controlCircle {
-    background: #111827;
-    color: #e2e8f0;
+    background: #333333;
+    color: #f1f1f1;
     box-shadow: none;
   }
 
@@ -504,6 +504,32 @@
     border-color: var(--color-border);
   }
 
+  .profileMenu {
+    border-color: #4a4a4a;
+    background: #303030;
+  }
+
+  .profileMenuDetails {
+    border-bottom-color: #4a4a4a;
+  }
+
+  .profileEmail {
+    color: #f1f1f1;
+  }
+
+  .profileRole {
+    color: #b9b9b9;
+  }
+
+  .logoutButton {
+    background: #303030;
+    color: #f38d82;
+  }
+
+  .logoutButton:hover {
+    background: #3a3131;
+  }
+
   .startIconWrap,
   .recordingSealInner {
     background: rgba(233, 116, 0, 0.18);
@@ -511,13 +537,13 @@
   }
 
   .controlCircle {
-    border-color: #334155;
+    border-color: #4a4a4a;
   }
 
   .recentShell {
-    background: linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
+    background: #303030;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.07),
-      0 8px 24px rgba(2, 6, 23, 0.45);
+      0 8px 24px rgba(0, 0, 0, 0.45);
   }
 }

@@ -4,12 +4,15 @@ import { BrowserRouter } from 'react-router-dom'
 import './styles/global.scss'
 import App from './App.tsx'
 import { AuthProvider } from './features/auth/auth-provider.tsx'
+import { TranscriberThemeProvider } from './lib/transcriber-theme.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <TranscriberThemeProvider>
+          <App />
+        </TranscriberThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

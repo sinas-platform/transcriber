@@ -868,6 +868,10 @@ export function RecordingPage() {
           setView('recording')
           void navigate('/recordings')
         }}
+        onOpenSettings={() => {
+          setView('recording')
+          void navigate('/settings')
+        }}
         onLogout={logout}
       />
     )

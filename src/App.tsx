@@ -8,6 +8,7 @@ import { LoginPage } from './pages/LoginPage'
 import { OtpPage } from './pages/OtpPage'
 import { RecordingDetailsEditPage } from './pages/RecordingDetailsEditPage'
 import { RecordingPage } from './pages/RecordingPage'
+import { SettingsPage } from './pages/SettingsPage'
 
 function App() {
   const { isAuthenticated } = useAuth()
@@ -25,6 +26,14 @@ function App() {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
           </ProtectedRoute>
         }
       />

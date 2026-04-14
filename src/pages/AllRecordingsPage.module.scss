@@ -598,13 +598,13 @@
 
 :global(html[data-theme='dark']) {
   .screen {
-    background: linear-gradient(180deg, #0b1220 0%, #070d18 100%);
+    background: #282828;
   }
 
   .title,
   .deleteDialogTitle,
   .listItemTitle {
-    color: #f8fafc;
+    color: #f6f6f6;
   }
 
   .subtitle,
@@ -613,13 +613,13 @@
   .listItemMeta,
   .listItemMatchReason,
   .selectCount {
-    color: #94a3b8;
+    color: #b9b9b9;
   }
 
   .controlsSection,
   .listSection,
   .deleteDialog {
-    background: #111827;
+    background: #333333;
     box-shadow: none;
   }
 
@@ -628,25 +628,25 @@
   .selectIconButton,
   .selectCount,
   .listItemButton:hover {
-    background: #0f172a;
+    background: #303030;
   }
 
   .searchIcon {
-    color: #94a3b8;
+    color: #b9b9b9;
   }
 
   .selectCheckboxControl {
-    background: #2e2a26;
-    border-color: #ffffff;
+    background: #303030;
+    border-color: #f1f1f1;
   }
 
   .selectCheckboxInput:hover + .selectCheckboxControl,
   .selectCheckboxInput:focus-visible + .selectCheckboxControl {
-    border-color: #ffffff;
+    border-color: #f1f1f1;
   }
 
   .selectCheckboxInput:focus-visible + .selectCheckboxControl {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 0 2px rgba(241, 241, 241, 0.25);
   }
 
   .selectCheckboxInput:checked + .selectCheckboxControl,
@@ -656,7 +656,7 @@
   }
 
   .listItem {
-    border-bottom-color: color-mix(in srgb, #cbd5e1 12%, transparent);
+    border-bottom-color: color-mix(in srgb, #d0d0d0 12%, transparent);
   }
 
   .listItemTitle mark {
@@ -670,31 +670,31 @@
   }
 
   .deleteSingleButton {
-    background: color-mix(in srgb, #dc2626 22%, #111827);
-    border-color: color-mix(in srgb, #f87171 40%, #111827);
+    background: color-mix(in srgb, #dc2626 22%, #333333);
+    border-color: color-mix(in srgb, #f87171 40%, #333333);
     color: #fecaca;
   }
 
   .deleteDialog {
-    border-color: color-mix(in srgb, #94a3b8 22%, #111827);
+    border-color: color-mix(in srgb, #b9b9b9 22%, #333333);
     box-shadow:
-      0 20px 40px rgba(2, 6, 23, 0.48),
-      0 6px 12px rgba(2, 6, 23, 0.35);
+      0 20px 40px rgba(0, 0, 0, 0.48),
+      0 6px 12px rgba(0, 0, 0, 0.35);
   }
 
   .deleteDialogDescription {
-    color: #cbd5e1;
+    color: #d0d0d0;
   }
 
   .deleteDialogCancelButton {
-    background: #0f172a;
-    border-color: color-mix(in srgb, #94a3b8 25%, #0f172a);
-    color: #e2e8f0;
+    background: #303030;
+    border-color: color-mix(in srgb, #b9b9b9 25%, #303030);
+    color: #f1f1f1;
   }
 
   .deleteDialogConfirmButton {
-    background: color-mix(in srgb, #dc2626 26%, #111827);
-    border-color: color-mix(in srgb, #f87171 40%, #111827);
+    background: color-mix(in srgb, #dc2626 26%, #333333);
+    border-color: color-mix(in srgb, #f87171 40%, #333333);
     color: #fecaca;
   }
 }

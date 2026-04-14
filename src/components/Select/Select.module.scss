@@ -169,6 +169,23 @@
 
 html[data-theme='dark'] {
   .menu {
-    background: #0f172a;
+    background: #303030;
+    border-color: color-mix(in srgb, #f1f1f1 16%, #303030);
+  }
+
+  .option {
+    color: #f1f1f1;
+  }
+
+  .option:hover,
+  .optionActive {
+    background: color-mix(in srgb, #f1f1f1 8%, transparent);
+  }
+
+  .optionSelected,
+  .optionSelected:hover,
+  .optionSelected.optionActive {
+    background: color-mix(in srgb, #f1f1f1 22%, #303030);
+    color: #f6f6f6;
   }
 }
