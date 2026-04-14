@@ -12,6 +12,7 @@ interface SidebarProps {
   onClose: () => void
   onNewRecording: () => void
   onSelectRecording: (recording: RecordingFile) => void
+  onViewAllRecordings: () => void
   onLogout: () => void
 }
 
@@ -126,6 +127,7 @@ export function Sidebar({
   onClose,
   onNewRecording,
   onSelectRecording,
+  onViewAllRecordings,
   onLogout,
 }: SidebarProps) {
   const visibleRecordings = useMemo(() => {
@@ -210,7 +212,7 @@ export function Sidebar({
             </ul>
           ) : null}
 
-          <button type='button' className={styles.allRecordingsButton}>
+          <button type='button' className={styles.allRecordingsButton} onClick={onViewAllRecordings}>
             ↗ All recordings
           </button>
         </section>

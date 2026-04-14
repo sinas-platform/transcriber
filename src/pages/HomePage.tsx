@@ -3,8 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RecentRecordingsList } from '../components/Home/RecentRecordingsList'
 import { useAuth } from '../features/auth/use-auth'
-import sinasLogo from '../icons/sinas-logo-small.svg'
+import sinasLogo from '../icons/sinas-logo-rec.svg'
 import { listCurrentUserRoles } from '../lib/auth'
+import { buildRecordingSourceState } from '../lib/recording-navigation'
 import {
   getRecordingsTarget,
   listRecordings,
@@ -350,7 +351,9 @@ export function HomePage() {
   }
 
   const selectRecording = (recording: RecordingFile): void => {
-    void navigate(`/recordings/${recording.id}`)
+    void navigate(`/recordings/${recording.id}`, {
+      state: buildRecordingSourceState('/'),
+    })
   }
 
   useEffect(() => {
@@ -582,6 +585,7 @@ export function HomePage() {
             recordingsError={recordingsError}
             recordings={recordings}
             onSelectRecording={selectRecording}
+            onViewAllRecordings={() => void navigate('/recordings')}
           />
         </div>
       </main>

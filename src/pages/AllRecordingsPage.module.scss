@@ -1,0 +1,700 @@
+.screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 0 16px max(24px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(244, 229, 212, 0.32) 0%, rgba(244, 229, 212, 0) 28%),
+    radial-gradient(circle at 100% 40%, rgba(225, 233, 244, 0.4) 0%, rgba(225, 233, 244, 0) 36%),
+    linear-gradient(180deg, #fcfcfd 0%, #f5f6f8 100%);
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 0.85rem;
+  padding: max(20px, env(safe-area-inset-top)) 0 calc(0.55rem + env(safe-area-inset-bottom));
+}
+
+.header {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.2rem 0.25rem 0.05rem;
+}
+
+.backButton {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.84rem;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.45rem, 5.4vw, 1.9rem);
+  line-height: 1.08;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.subtitle {
+  margin: 0;
+  color: #667085;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.controlsSection {
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.7rem;
+  box-shadow:
+    0 6px 6px rgba(15, 23, 42, 0.03),
+    0 1px 4px rgba(15, 23, 42, 0.03);
+}
+
+.searchField {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.78rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #667085;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 2.45rem;
+  border-radius: 0.72rem;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-surface) 96%, transparent);
+  color: var(--color-text-primary);
+  padding: 0.64rem 0.78rem 0.64rem 2.35rem;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.searchInput:focus,
+.searchInput:focus-visible {
+  outline: none;
+  border-color: #ff7b00;
+  box-shadow: 0 0 0 0.14rem color-mix(in srgb, #ff7b00 22%, transparent);
+}
+
+.filterRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.selectField {
+  width: 100%;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.metaRowLabel {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  color: #667085;
+}
+
+.selectButton {
+  min-height: 2rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-surface) 96%, transparent);
+  color: var(--color-text-primary);
+  padding: 0.35rem 0.72rem;
+  font-size: 0.83rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.selectButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.selectModeActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.selectAllToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.selectAllToggleDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.selectCount {
+  min-height: 2rem;
+  border-radius: 0.72rem;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  padding: 0 0.62rem;
+  font-size: 0.8rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.selectIconButton {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.72rem;
+  background: transparent;
+  color: var(--color-text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.selectIconButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.selectCheckbox {
+  width: 28px;
+  height: 28px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.selectCheckboxInput {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.selectCheckboxControl {
+  width: 16px;
+  height: 16px;
+  border: 1.2px solid #344054;
+  background: #fff;
+  border-radius: 1px;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    box-shadow 120ms ease,
+    opacity 120ms ease;
+  position: relative;
+}
+
+.selectCheckboxControl::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  background-image: url('../icons/check.svg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 10px;
+  transform: translate(-50%, -50%) scale(0.9);
+  transform-origin: center;
+  opacity: 0;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.selectCheckboxInput:hover + .selectCheckboxControl {
+  border-color: #59514a;
+}
+
+.selectCheckboxInput:focus-visible + .selectCheckboxControl {
+  border-color: #59514a;
+  box-shadow: 0 0 0 2px rgba(89, 81, 74, 0.18);
+}
+
+.selectCheckboxInput:checked + .selectCheckboxControl,
+.selectCheckboxInput:indeterminate + .selectCheckboxControl {
+  border-color: #5a524c;
+  background: #5a524c;
+}
+
+.selectCheckboxInput:checked + .selectCheckboxControl::after,
+.selectCheckboxInput:indeterminate + .selectCheckboxControl::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.selectCheckboxInput:indeterminate + .selectCheckboxControl::after {
+  width: 16px;
+  height: 16px;
+  background-image: url('../icons/minus.svg');
+  background-size: 8px;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.listSection {
+  border-radius: 20px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow:
+    0 6px 6px rgba(15, 23, 42, 0.03),
+    0 1px 4px rgba(15, 23, 42, 0.03);
+}
+
+.stateText,
+.errorText {
+  margin: 0;
+  padding: 0.95rem;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.stateText {
+  color: #667085;
+}
+
+.errorText {
+  color: #b91c1c;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.18rem 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, #111827 7%, transparent);
+}
+
+.listItem:last-child {
+  border-bottom: 0;
+}
+
+.listItemSelectMode {
+  padding-left: 0.3rem;
+}
+
+.listItemButton {
+  border: 0;
+  background: transparent;
+  width: 100%;
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 0.66rem;
+  padding: 0.35rem 0.15rem;
+}
+
+.listItemButton:hover {
+  background: color-mix(in srgb, #111827 6%, transparent);
+}
+
+.listItemContent {
+  min-width: 0;
+}
+
+.listItemTitle {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  color: #101828;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.listItemTitle mark {
+  background: #ffe7ce;
+  color: inherit;
+}
+
+.listItemMeta {
+  margin: 0.18rem 0 0;
+  color: #667085;
+  font-size: 0.76rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.listItemMatchReason {
+  margin: 0.18rem 0 0;
+  color: #7d746d;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.listItemMatchReason mark {
+  background: #ffe7ce;
+  color: inherit;
+}
+
+.listItemTail {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 0.29rem 0.53rem;
+  border: 1px solid transparent;
+}
+
+.statusSuccess {
+  color: #1f7a64;
+  background: #edf9f4;
+  border-color: color-mix(in srgb, #1f7a64 20%, transparent);
+}
+
+.statusWarning {
+  color: #c67a1f;
+  background: #fff7e8;
+  border-color: color-mix(in srgb, #c67a1f 22%, transparent);
+}
+
+.statusDanger {
+  color: #b54747;
+  background: #fff0f0;
+  border-color: color-mix(in srgb, #b54747 20%, transparent);
+}
+
+.statusMuted {
+  color: #667085;
+  background: #f4f5f7;
+  border-color: color-mix(in srgb, #667085 22%, transparent);
+}
+
+.deleteSingleButton {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid color-mix(in srgb, #dc2626 32%, var(--color-border));
+  border-radius: 0.72rem;
+  background: color-mix(in srgb, #dc2626 7%, #fff);
+  color: #b91c1c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.deleteSingleButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.deleteDialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, #0f172a 52%, transparent);
+}
+
+.deleteDialog {
+  width: min(100%, 22rem);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  background: #ffffff;
+  padding: 1rem;
+  display: grid;
+  gap: 0.65rem;
+  box-shadow:
+    0 22px 44px rgba(15, 23, 42, 0.22),
+    0 6px 12px rgba(15, 23, 42, 0.12);
+}
+
+.deleteDialogTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.deleteDialogDescription {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: #475467;
+}
+
+.deleteDialogActions {
+  margin-top: 0.18rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.deleteDialogCancelButton,
+.deleteDialogConfirmButton {
+  min-height: 2.35rem;
+  border-radius: 0.72rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.deleteDialogCancelButton {
+  border: 1px solid var(--color-border);
+  background: #ffffff;
+  color: var(--color-text-primary);
+}
+
+.deleteDialogConfirmButton {
+  border: 1px solid color-mix(in srgb, #dc2626 42%, var(--color-border));
+  background: color-mix(in srgb, #dc2626 10%, #fff);
+  color: #b91c1c;
+}
+
+.deleteDialogCancelButton:disabled,
+.deleteDialogConfirmButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 26.25rem) {
+  .screen {
+    padding-inline: 14px;
+  }
+
+  .main {
+    gap: 0.72rem;
+    padding-top: max(16px, env(safe-area-inset-top));
+  }
+
+  .header {
+    padding-inline: 0.05rem;
+  }
+
+  .title {
+    font-size: 1.28rem;
+  }
+
+  .controlsSection,
+  .listSection {
+    border-radius: 16px;
+  }
+
+  .controlsSection {
+    padding: 0.75rem;
+  }
+
+  .filterRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metaRow {
+    align-items: flex-start;
+  }
+
+  .selectModeActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .listItem {
+    padding-right: 0.4rem;
+    padding-left: 0.45rem;
+  }
+
+  .listItemButton {
+    min-height: 2.8rem;
+  }
+
+  .listItemTitle {
+    font-size: 0.88rem;
+    white-space: normal;
+  }
+
+  .listItemMeta {
+    font-size: 0.74rem;
+    white-space: normal;
+  }
+
+  .listItemMatchReason {
+    font-size: 0.7rem;
+    white-space: normal;
+  }
+
+  .statusBadge {
+    font-size: 0.7rem;
+  }
+
+  .deleteDialogActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+:global(html[data-theme='dark']) {
+  .screen {
+    background: linear-gradient(180deg, #0b1220 0%, #070d18 100%);
+  }
+
+  .title,
+  .deleteDialogTitle,
+  .listItemTitle {
+    color: #f8fafc;
+  }
+
+  .subtitle,
+  .metaRowLabel,
+  .stateText,
+  .listItemMeta,
+  .listItemMatchReason,
+  .selectCount {
+    color: #94a3b8;
+  }
+
+  .controlsSection,
+  .listSection,
+  .deleteDialog {
+    background: #111827;
+    box-shadow: none;
+  }
+
+  .searchInput,
+  .selectButton,
+  .selectIconButton,
+  .selectCount,
+  .listItemButton:hover {
+    background: #0f172a;
+  }
+
+  .searchIcon {
+    color: #94a3b8;
+  }
+
+  .selectCheckboxControl {
+    background: #2e2a26;
+    border-color: #ffffff;
+  }
+
+  .selectCheckboxInput:hover + .selectCheckboxControl,
+  .selectCheckboxInput:focus-visible + .selectCheckboxControl {
+    border-color: #ffffff;
+  }
+
+  .selectCheckboxInput:focus-visible + .selectCheckboxControl {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+  }
+
+  .selectCheckboxInput:checked + .selectCheckboxControl,
+  .selectCheckboxInput:indeterminate + .selectCheckboxControl {
+    border-color: #e97203;
+    background: #e97203;
+  }
+
+  .listItem {
+    border-bottom-color: color-mix(in srgb, #cbd5e1 12%, transparent);
+  }
+
+  .listItemTitle mark {
+    background: #7d3d00;
+    color: #ffffff;
+  }
+
+  .listItemMatchReason mark {
+    background: #7d3d00;
+    color: #ffffff;
+  }
+
+  .deleteSingleButton {
+    background: color-mix(in srgb, #dc2626 22%, #111827);
+    border-color: color-mix(in srgb, #f87171 40%, #111827);
+    color: #fecaca;
+  }
+
+  .deleteDialog {
+    border-color: color-mix(in srgb, #94a3b8 22%, #111827);
+    box-shadow:
+      0 20px 40px rgba(2, 6, 23, 0.48),
+      0 6px 12px rgba(2, 6, 23, 0.35);
+  }
+
+  .deleteDialogDescription {
+    color: #cbd5e1;
+  }
+
+  .deleteDialogCancelButton {
+    background: #0f172a;
+    border-color: color-mix(in srgb, #94a3b8 25%, #0f172a);
+    color: #e2e8f0;
+  }
+
+  .deleteDialogConfirmButton {
+    background: color-mix(in srgb, #dc2626 26%, #111827);
+    border-color: color-mix(in srgb, #f87171 40%, #111827);
+    color: #fecaca;
+  }
+}

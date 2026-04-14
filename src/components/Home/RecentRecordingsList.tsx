@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Mic } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { RecordingFile } from '../../lib/recordings'
 import styles from './RecentRecordingsList.module.scss'
@@ -8,6 +8,7 @@ interface RecentRecordingsListProps {
   recordingsError: string | null
   recordings: RecordingFile[]
   onSelectRecording: (recording: RecordingFile) => void
+  onViewAllRecordings?: () => void
 }
 
 type TranscriptionTone = 'success' | 'warning' | 'muted' | 'danger'
@@ -181,6 +182,7 @@ export function RecentRecordingsList({
   recordingsError,
   recordings,
   onSelectRecording,
+  onViewAllRecordings,
 }: RecentRecordingsListProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -210,7 +212,12 @@ export function RecentRecordingsList({
       <header className={styles.header}>
         <h2 className={styles.title}>Recent recordings</h2>
 
-        {shouldShowToggle ? (
+        {onViewAllRecordings ? (
+          <button type='button' className={styles.allRecordingsButton} onClick={onViewAllRecordings}>
+            <Mic size={16} className={styles.allRecordingsIcon} aria-hidden='true' />
+            <span>All recordings</span>
+          </button>
+        ) : shouldShowToggle ? (
           <button type='button' className={styles.toggleButton} onClick={() => setIsExpanded((prev) => !prev)}>
             <span>{isExpanded ? 'Show less' : 'See all'}</span>
             <ChevronRight size={16} className={`${styles.toggleIcon} ${isExpanded ? styles.toggleIconExpanded : ''}`} />
@@ -258,6 +265,7 @@ export function RecentRecordingsList({
           })}
         </ul>
       ) : null}
+
     </section>
   )
 }

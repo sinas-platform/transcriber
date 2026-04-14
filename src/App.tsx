@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { useAuth } from './features/auth/use-auth'
+import { AllRecordingsPage } from './pages/AllRecordingsPage'
 import { ChatPage } from './pages/ChatPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
@@ -24,6 +25,14 @@ function App() {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recordings"
+        element={
+          <ProtectedRoute>
+            <AllRecordingsPage />
           </ProtectedRoute>
         }
       />

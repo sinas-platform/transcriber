@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Search } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 import {
   forwardRef,
   useEffect,
@@ -8,6 +8,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
+import CheckIcon from '../../icons/check.svg?react'
 import styles from './Select.module.scss'
 
 export type SelectOption = {
@@ -320,7 +321,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
                     }}
                   >
                     <span>{option.label}</span>
-                    {isSelected ? <Check size={14} className={styles.optionCheck} aria-hidden='true' /> : null}
+                    {isSelected ? <CheckIcon className={styles.optionCheck} aria-hidden='true' focusable='false' /> : null}
                   </li>
                 )
               })}

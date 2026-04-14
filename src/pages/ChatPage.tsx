@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../features/auth/use-auth'
+import { buildRecordingSourceState, readRecordingSource } from '../lib/recording-navigation'
 import {
   listAgents,
   type AgentSummary,
@@ -35,6 +36,7 @@ import styles from './ChatPage.module.scss'
 
 interface ChatLocationState {
   initialContent?: MessageContent
+  from?: '/' | '/recordings'
 }
 
 type AgentColorClass =
@@ -265,6 +267,8 @@ export function ChatPage() {
   const { recordingId, chatId } = useParams<{ recordingId: string; chatId: string }>()
   const { session } = useAuth()
   const locationState = location.state as ChatLocationState | null
+  const recordingSource = readRecordingSource(locationState)
+  const recordingSourceState = buildRecordingSourceState(recordingSource ?? '/')
 
   const initialContent = useMemo<MessageContent | undefined>(() => {
     const value = locationState?.initialContent
@@ -587,7 +591,16 @@ export function ChatPage() {
             <button
               type='button'
               className={styles.backButton}
-              onClick={() => void navigate(recordingId ? `/recordings/${recordingId}` : '/')}
+              onClick={() => {
+                if (!recordingId) {
+                  void navigate('/')
+                  return
+                }
+
+                void navigate(`/recordings/${recordingId}`, {
+                  state: recordingSourceState,
+                })
+              }}
               aria-label='Back to recording'
             >
               <ArrowLeft size={18} />

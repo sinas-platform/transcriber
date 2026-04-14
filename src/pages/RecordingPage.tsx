@@ -1,6 +1,6 @@
 import { ArrowLeft, Check, ChevronDown, ChevronRight, Copy, Pencil, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type SVGProps } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar/Sidebar'
 import { useAuth } from '../features/auth/use-auth'
 import {
@@ -36,6 +36,7 @@ import {
   listRecordings,
   type RecordingFile,
 } from '../lib/recordings'
+import { buildRecordingSourceState, readRecordingSource } from '../lib/recording-navigation'
 import styles from './RecordingPage.module.scss'
 
 type PageView = 'recording' | 'sidebar'
@@ -373,7 +374,12 @@ function isPendingTranscriptionStatus(status: string | null): boolean {
 export function RecordingPage() {
   const { logout, session } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const { recordingId } = useParams<{ recordingId: string }>()
+  const recordingSource = readRecordingSource(location.state)
+  const backTarget = recordingSource ?? '/'
+  const recordingSourceState = buildRecordingSourceState(backTarget)
+  const returnLinkLabel = backTarget === '/recordings' ? 'Return to all recordings' : 'Return to recorder'
 
   const [view, setView] = useState<PageView>('recording')
   const [isLoadingRecordings, setIsLoadingRecordings] = useState(false)
@@ -797,6 +803,7 @@ export function RecordingPage() {
       void navigate(`/recordings/${selectedRecording.id}/chats/${chat.id}`, {
         state: {
           initialContent: bootstrapMessage,
+          ...recordingSourceState,
         },
       })
     } catch (error) {
@@ -831,7 +838,7 @@ export function RecordingPage() {
       })
 
       setIsDeleteDialogOpen(false)
-      void navigate('/', { replace: true })
+      void navigate(backTarget, { replace: true })
     } catch (error) {
       setDeleteRecordingError(getApiErrorMessage(error, 'Could not delete this recording.'))
     } finally {
@@ -853,7 +860,13 @@ export function RecordingPage() {
         }}
         onSelectRecording={(recording) => {
           setView('recording')
-          void navigate(`/recordings/${recording.id}`)
+          void navigate(`/recordings/${recording.id}`, {
+            state: recordingSourceState,
+          })
+        }}
+        onViewAllRecordings={() => {
+          setView('recording')
+          void navigate('/recordings')
         }}
         onLogout={logout}
       />
@@ -872,8 +885,8 @@ export function RecordingPage() {
         {!isLoadingRecording && recordingError ? (
           <section className={styles.detailSection}>
             <p className={styles.sectionError}>{recordingError}</p>
-            <button type='button' className={styles.sectionLinkButton} onClick={() => void navigate('/')}>
-              Return to recorder
+            <button type='button' className={styles.sectionLinkButton} onClick={() => void navigate(backTarget)}>
+              {returnLinkLabel}
             </button>
           </section>
         ) : null}
@@ -881,7 +894,7 @@ export function RecordingPage() {
         {!isLoadingRecording && !recordingError && selectedRecording ? (
           <>
             <section className={styles.pageHeaderSection}>
-              <button type='button' className={styles.backButton} onClick={() => void navigate('/')}>
+              <button type='button' className={styles.backButton} onClick={() => void navigate(backTarget)}>
                 <ArrowLeft size={16} />
                 Back
               </button>
@@ -892,7 +905,11 @@ export function RecordingPage() {
                   <button
                     type='button'
                     className={styles.editDetailsButton}
-                    onClick={() => void navigate(`/recordings/${selectedRecording.id}/details/edit`)}
+                    onClick={() =>
+                      void navigate(`/recordings/${selectedRecording.id}/details/edit`, {
+                        state: recordingSourceState,
+                      })
+                    }
                     aria-label='Edit recording details'
                     disabled={isDeletingRecording}
                   >

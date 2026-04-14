@@ -2,7 +2,8 @@ import { ArrowLeft, Plus, Save, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { size } from '@floating-ui/react'
 import DatePicker from 'react-datepicker'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { buildRecordingSourceState, readRecordingSource } from '../lib/recording-navigation'
 import {
   getRecordingsTarget,
   listRecordings,
@@ -164,6 +165,11 @@ function setMetadataValue(
 export function RecordingDetailsEditPage() {
   const { recordingId } = useParams<{ recordingId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const recordingSource = readRecordingSource(location.state)
+  const backTarget = recordingSource ?? '/'
+  const recordingSourceState = buildRecordingSourceState(backTarget)
+  const returnLinkLabel = backTarget === '/recordings' ? 'Return to all recordings' : 'Return to recorder'
 
   const recordingsTarget = useMemo(() => getRecordingsTarget(), [])
 
@@ -286,7 +292,9 @@ export function RecordingDetailsEditPage() {
         nextMetadata,
       )
 
-      void navigate(`/recordings/${recording.id}`)
+      void navigate(`/recordings/${recording.id}`, {
+        state: recordingSourceState,
+      })
     } catch (error) {
       const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
       setSaveError(typeof detail === 'string' && detail.trim() ? detail : 'Failed to save details.')
@@ -302,7 +310,11 @@ export function RecordingDetailsEditPage() {
           <button
             type='button'
             className={styles.backButton}
-            onClick={() => void navigate(`/recordings/${recordingId}`)}
+            onClick={() =>
+              void navigate(`/recordings/${recordingId}`, {
+                state: recordingSourceState,
+              })
+            }
           >
             <ArrowLeft size={16} />
             Back
@@ -319,8 +331,8 @@ export function RecordingDetailsEditPage() {
         {!isLoading && loadError ? (
           <section className={styles.panel}>
             <p className={styles.sectionError}>{loadError}</p>
-            <button type='button' className={styles.linkButton} onClick={() => void navigate('/')}>
-              Return to recorder
+            <button type='button' className={styles.linkButton} onClick={() => void navigate(backTarget)}>
+              {returnLinkLabel}
             </button>
           </section>
         ) : null}
