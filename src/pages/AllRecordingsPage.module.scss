@@ -659,6 +659,30 @@
     border-bottom-color: color-mix(in srgb, #d0d0d0 12%, transparent);
   }
 
+  .statusSuccess {
+    color: #9fdcb9;
+    background: color-mix(in srgb, #245f3a 34%, #333333);
+    border-color: color-mix(in srgb, #9fdcb9 38%, #333333);
+  }
+
+  .statusWarning {
+    color: #ffce95;
+    background: color-mix(in srgb, #9e4b11 34%, #333333);
+    border-color: color-mix(in srgb, #ffce95 36%, #333333);
+  }
+
+  .statusDanger {
+    color: #fecaca;
+    background: color-mix(in srgb, #dc2626 22%, #333333);
+    border-color: color-mix(in srgb, #f87171 40%, #333333);
+  }
+
+  .statusMuted {
+    color: #d0d0d0;
+    background: #303030;
+    border-color: color-mix(in srgb, #b9b9b9 28%, #333333);
+  }
+
   .listItemTitle mark {
     background: #7d3d00;
     color: #ffffff;

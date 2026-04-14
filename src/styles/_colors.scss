@@ -30,4 +30,23 @@ html[data-theme='dark'] {
   --color-bg-app: #282828;
   --color-bg-surface: rgba(51, 51, 51, 0.82);
   --color-border: #4a4a4a;
+
+  /* Match chat app dark theme agent palette tokens. */
+  --color-palette-orange: #ff7b00;
+  --color-palette-pink: #ff8ad4;
+  --color-palette-purple: #e390ff;
+  --color-palette-violet: #c692ff;
+  --color-palette-indigo: #87a9ff;
+  --color-palette-cyan: #97e6ff;
+  --color-palette-green: #e3ff84;
+  --color-palette-yellow: #ffd67c;
+
+  --color-palette-orange-soft: #7d3d00;
+  --color-palette-pink-soft: #923458;
+  --color-palette-purple-soft: #7c1f91;
+  --color-palette-violet-soft: #57288d;
+  --color-palette-indigo-soft: #303669;
+  --color-palette-cyan-soft: #235d60;
+  --color-palette-green-soft: #626f35;
+  --color-palette-yellow-soft: #70561c;
 }

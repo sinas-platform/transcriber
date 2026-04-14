@@ -1,16 +1,19 @@
 import { ArrowLeft, Check, Copy, Download, Ellipsis, LoaderCircle, Send } from 'lucide-react'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent, type SVGProps } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useAuth } from '../features/auth/use-auth'
 import { buildRecordingSourceState, readRecordingSource } from '../lib/recording-navigation'
 import {
   listAgents,
   type AgentSummary,
 } from '../lib/agents'
-import { ensureAgentVisualSlots } from '../lib/agent-visual-slots'
+import {
+  buildAgentPlaceholderMetaById,
+  buildSingleAgentPlaceholderMeta,
+  DEFAULT_AGENT_PLACEHOLDER_META,
+} from '../lib/agent-placeholders'
 import {
   extractMessageText,
   getChat,
@@ -20,62 +23,12 @@ import {
   type ChatWithMessages,
   type MessageContent,
 } from '../lib/chats'
-import ArchPlaceholder from '../icons/agentsPlaceholders/arch.svg?react'
-import BlobPlaceholder from '../icons/agentsPlaceholders/blob.svg?react'
-import CirclesSquarePlaceholder from '../icons/agentsPlaceholders/circles-square.svg?react'
-import CirclesVerticalPlaceholder from '../icons/agentsPlaceholders/circles-vertical.svg?react'
-import CoilPlaceholder from '../icons/agentsPlaceholders/coil.svg?react'
-import EllipsesPlaceholder from '../icons/agentsPlaceholders/ellipses.svg?react'
-import HalfCirclesPlaceholder from '../icons/agentsPlaceholders/half-circles.svg?react'
-import PetalsPlaceholder from '../icons/agentsPlaceholders/petals.svg?react'
-import PinwheelPlaceholder from '../icons/agentsPlaceholders/pinwheel.svg?react'
-import SemicirclesHorizontalPlaceholder from '../icons/agentsPlaceholders/semicircles-horizontal.svg?react'
-import SemicirclesVerticalPlaceholder from '../icons/agentsPlaceholders/semicircles-vertical.svg?react'
-import SparklePlaceholder from '../icons/agentsPlaceholders/sparkle.svg?react'
 import styles from './ChatPage.module.scss'
 
 interface ChatLocationState {
   initialContent?: MessageContent
   from?: '/' | '/recordings'
 }
-
-type AgentColorClass =
-  | 'agentColorOrange'
-  | 'agentColorPink'
-  | 'agentColorPurple'
-  | 'agentColorViolet'
-  | 'agentColorIndigo'
-  | 'agentColorCyan'
-  | 'agentColorGreen'
-  | 'agentColorYellow'
-
-type AgentPlaceholderIcon = ComponentType<SVGProps<SVGSVGElement>>
-
-const AGENT_PLACEHOLDER_ICONS = [
-  ArchPlaceholder,
-  BlobPlaceholder,
-  CirclesSquarePlaceholder,
-  CirclesVerticalPlaceholder,
-  CoilPlaceholder,
-  EllipsesPlaceholder,
-  HalfCirclesPlaceholder,
-  PetalsPlaceholder,
-  PinwheelPlaceholder,
-  SemicirclesHorizontalPlaceholder,
-  SemicirclesVerticalPlaceholder,
-  SparklePlaceholder,
-] as const satisfies AgentPlaceholderIcon[]
-
-const AGENT_COLOR_CLASSES: AgentColorClass[] = [
-  'agentColorOrange',
-  'agentColorPink',
-  'agentColorPurple',
-  'agentColorViolet',
-  'agentColorIndigo',
-  'agentColorCyan',
-  'agentColorGreen',
-  'agentColorYellow',
-]
 
 function sortAgents(agents: AgentSummary[]): AgentSummary[] {
   return [...agents].sort((left, right) => {
@@ -87,28 +40,6 @@ function sortAgents(agents: AgentSummary[]): AgentSummary[] {
     const rightLabel = `${right.namespace}/${right.name}`
     return leftLabel.localeCompare(rightLabel)
   })
-}
-
-function getAgentVisualStyle(agentIndex: number): {
-  placeholderIcon: AgentPlaceholderIcon
-  colorClass: AgentColorClass
-} {
-  return {
-    placeholderIcon: AGENT_PLACEHOLDER_ICONS[agentIndex % AGENT_PLACEHOLDER_ICONS.length],
-    colorClass: AGENT_COLOR_CLASSES[agentIndex % AGENT_COLOR_CLASSES.length],
-  }
-}
-
-function buildAgentVisualStyleFallbackKey(namespace: string | null | undefined, name: string | null | undefined): number {
-  const key = `${namespace ?? ''}/${name ?? ''}`.toLowerCase()
-  if (!key.trim()) return 0
-
-  let hash = 0
-  for (let index = 0; index < key.length; index += 1) {
-    hash = (hash * 31 + key.charCodeAt(index)) >>> 0
-  }
-
-  return hash
 }
 
 function getApiErrorMessage(error: unknown, fallback: string): string {
@@ -265,7 +196,6 @@ export function ChatPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { recordingId, chatId } = useParams<{ recordingId: string; chatId: string }>()
-  const { session } = useAuth()
   const locationState = location.state as ChatLocationState | null
   const recordingSource = readRecordingSource(locationState)
   const recordingSourceState = buildRecordingSourceState(recordingSource ?? '/')
@@ -282,7 +212,6 @@ export function ChatPage() {
   const [isLoadingChat, setIsLoadingChat] = useState(true)
   const [chatError, setChatError] = useState<string | null>(null)
   const [availableAgents, setAvailableAgents] = useState<AgentSummary[]>([])
-  const [agentVisualSlots, setAgentVisualSlots] = useState<Record<string, number>>({})
 
   const [draft, setDraft] = useState('')
   const [isSending, setIsSending] = useState(false)
@@ -305,16 +234,10 @@ export function ChatPage() {
         const loaded = await listAgents()
         if (isCancelled) return
         const activeAgents = sortAgents(loaded.filter((agent) => agent.isActive))
-        const visualSlots = ensureAgentVisualSlots(
-          activeAgents.map((agent) => agent.id),
-          session?.user.id,
-        )
-        setAgentVisualSlots(visualSlots)
         setAvailableAgents(activeAgents)
       } catch {
         if (isCancelled) return
         setAvailableAgents([])
-        setAgentVisualSlots({})
       }
     }
 
@@ -323,7 +246,7 @@ export function ChatPage() {
     return () => {
       isCancelled = true
     }
-  }, [session?.user.id])
+  }, [])
 
   const loadChat = useCallback(async (): Promise<void> => {
     if (!chatId) {
@@ -502,17 +425,29 @@ export function ChatPage() {
     )
   }, [availableAgents, chat])
 
+  const placeholderByAgentId = useMemo(
+    () => buildAgentPlaceholderMetaById(availableAgents),
+    [availableAgents],
+  )
+
   const assistantVisualStyle = useMemo(() => {
     if (selectedAgent) {
-      const slot = agentVisualSlots[selectedAgent.id]
-      if (typeof slot === 'number') {
-        return getAgentVisualStyle(slot)
-      }
+      return placeholderByAgentId[selectedAgent.id] ?? DEFAULT_AGENT_PLACEHOLDER_META
     }
 
-    const fallbackIndex = buildAgentVisualStyleFallbackKey(chat?.agentNamespace, chat?.agentName)
-    return getAgentVisualStyle(fallbackIndex)
-  }, [agentVisualSlots, chat?.agentName, chat?.agentNamespace, selectedAgent])
+    const fallbackNamespace = chat?.agentNamespace?.trim()
+    const fallbackName = chat?.agentName?.trim()
+    if (fallbackNamespace && fallbackName) {
+      const fallbackId = chat?.agentId?.trim() || `${fallbackNamespace.toLowerCase()}::${fallbackName.toLowerCase()}`
+      return buildSingleAgentPlaceholderMeta({
+        id: fallbackId,
+        namespace: fallbackNamespace,
+        name: fallbackName,
+      })
+    }
+
+    return DEFAULT_AGENT_PLACEHOLDER_META
+  }, [chat?.agentId, chat?.agentName, chat?.agentNamespace, placeholderByAgentId, selectedAgent])
 
   const assistantIconUrl = selectedAgent?.iconUrl?.trim() || null
   const AssistantPlaceholderIcon = assistantVisualStyle.placeholderIcon

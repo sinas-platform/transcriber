@@ -1,5 +1,5 @@
 import { ArrowLeft, Check, ChevronDown, ChevronRight, Copy, Pencil, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type SVGProps } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar/Sidebar'
 import { useAuth } from '../features/auth/use-auth'
@@ -12,23 +12,11 @@ import {
   readRecentAgentsByUser,
   sortAgentsByRecentUsage,
 } from '../lib/agent-recency'
-import { ensureAgentVisualSlots } from '../lib/agent-visual-slots'
+import { buildAgentPlaceholderMetaById, DEFAULT_AGENT_PLACEHOLDER_META } from '../lib/agent-placeholders'
 import {
   buildRecordingBootstrapMessage,
   createChatWithAgent,
 } from '../lib/chats'
-import ArchPlaceholder from '../icons/agentsPlaceholders/arch.svg?react'
-import BlobPlaceholder from '../icons/agentsPlaceholders/blob.svg?react'
-import CirclesSquarePlaceholder from '../icons/agentsPlaceholders/circles-square.svg?react'
-import CirclesVerticalPlaceholder from '../icons/agentsPlaceholders/circles-vertical.svg?react'
-import CoilPlaceholder from '../icons/agentsPlaceholders/coil.svg?react'
-import EllipsesPlaceholder from '../icons/agentsPlaceholders/ellipses.svg?react'
-import HalfCirclesPlaceholder from '../icons/agentsPlaceholders/half-circles.svg?react'
-import PetalsPlaceholder from '../icons/agentsPlaceholders/petals.svg?react'
-import PinwheelPlaceholder from '../icons/agentsPlaceholders/pinwheel.svg?react'
-import SemicirclesHorizontalPlaceholder from '../icons/agentsPlaceholders/semicircles-horizontal.svg?react'
-import SemicirclesVerticalPlaceholder from '../icons/agentsPlaceholders/semicircles-vertical.svg?react'
-import SparklePlaceholder from '../icons/agentsPlaceholders/sparkle.svg?react'
 import {
   deleteRecording,
   downloadRecordingContent,
@@ -40,45 +28,7 @@ import { buildRecordingSourceState, readRecordingSource } from '../lib/recording
 import styles from './RecordingPage.module.scss'
 
 type PageView = 'recording' | 'sidebar'
-
-type AgentColorClass =
-  | 'agentColorOrange'
-  | 'agentColorPink'
-  | 'agentColorPurple'
-  | 'agentColorViolet'
-  | 'agentColorIndigo'
-  | 'agentColorCyan'
-  | 'agentColorGreen'
-  | 'agentColorYellow'
-
-type AgentPlaceholderIcon = ComponentType<SVGProps<SVGSVGElement>>
 type RecordingMember = { name: string; role: string }
-
-const AGENT_PLACEHOLDER_ICONS = [
-  ArchPlaceholder,
-  BlobPlaceholder,
-  CirclesSquarePlaceholder,
-  CirclesVerticalPlaceholder,
-  CoilPlaceholder,
-  EllipsesPlaceholder,
-  HalfCirclesPlaceholder,
-  PetalsPlaceholder,
-  PinwheelPlaceholder,
-  SemicirclesHorizontalPlaceholder,
-  SemicirclesVerticalPlaceholder,
-  SparklePlaceholder,
-] as const satisfies AgentPlaceholderIcon[]
-
-const AGENT_COLOR_CLASSES: AgentColorClass[] = [
-  'agentColorOrange',
-  'agentColorPink',
-  'agentColorPurple',
-  'agentColorViolet',
-  'agentColorIndigo',
-  'agentColorCyan',
-  'agentColorGreen',
-  'agentColorYellow',
-]
 
 function readMetadataDurationMs(metadata: Record<string, unknown>): number | null {
   const value = metadata.duration_ms
@@ -338,16 +288,6 @@ function getApiErrorMessage(error: unknown, fallback: string): string {
   return fallback
 }
 
-function getAgentVisualStyle(agentIndex: number): {
-  placeholderIcon: AgentPlaceholderIcon
-  colorClass: AgentColorClass
-} {
-  return {
-    placeholderIcon: AGENT_PLACEHOLDER_ICONS[agentIndex % AGENT_PLACEHOLDER_ICONS.length],
-    colorClass: AGENT_COLOR_CLASSES[agentIndex % AGENT_COLOR_CLASSES.length],
-  }
-}
-
 function readMetadataTranscriptionStatus(metadata: Record<string, unknown>): string | null {
   const value = metadata.transcription_status
   if (typeof value !== 'string' || !value.trim()) return null
@@ -405,7 +345,6 @@ export function RecordingPage() {
   const [hasCopiedTranscription, setHasCopiedTranscription] = useState(false)
 
   const [availableAgents, setAvailableAgents] = useState<AgentSummary[]>([])
-  const [agentVisualSlots, setAgentVisualSlots] = useState<Record<string, number>>({})
   const [isLoadingAgents, setIsLoadingAgents] = useState(false)
   const [agentsError, setAgentsError] = useState<string | null>(null)
   const [agentChatError, setAgentChatError] = useState<string | null>(null)
@@ -418,6 +357,7 @@ export function RecordingPage() {
   const copyResetTimeoutRef = useRef<number | null>(null)
 
   const recordingsTarget = useMemo(() => getRecordingsTarget(), [])
+  const placeholderByAgentId = useMemo(() => buildAgentPlaceholderMetaById(availableAgents), [availableAgents])
 
   const selectedRecordingLabel = useMemo(() => {
     if (!selectedRecording) return ''
@@ -622,11 +562,6 @@ export function RecordingPage() {
         agentsResult.value.filter((agent) => agent.isActive),
         recentAgentsByUser,
       )
-      const visualSlots = ensureAgentVisualSlots(
-        activeAgents.map((agent) => agent.id),
-        session?.user.id,
-      )
-      setAgentVisualSlots(visualSlots)
       setAvailableAgents(activeAgents)
       setIsLoadingAgents(false)
     }
@@ -1092,8 +1027,7 @@ export function RecordingPage() {
               {!isLoadingAgents && !agentsError && availableAgents.length > 0 ? (
                 <ul className={styles.agentsList}>
                   {availableAgents.map((agent) => {
-                    const visualSlot = agentVisualSlots[agent.id] ?? 0
-                    const visualStyle = getAgentVisualStyle(visualSlot)
+                    const visualStyle = placeholderByAgentId[agent.id] ?? DEFAULT_AGENT_PLACEHOLDER_META
                     const PlaceholderIcon = visualStyle.placeholderIcon
                     const hasAgentIcon = Boolean(agent.iconUrl?.trim())
                     const isOpeningThisAgent = isOpeningAgentChatId === agent.id

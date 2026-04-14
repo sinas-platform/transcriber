@@ -593,6 +593,15 @@
     color: #f0b15d;
   }
 
+  .deleteRecordingButton {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.72rem;
+    background: color-mix(in srgb, #dc2626 22%, #333333);
+    border-color: color-mix(in srgb, #f87171 40%, #333333);
+    color: #fecaca;
+  }
+
   .deleteDialog {
     background: #333333;
     border-color: color-mix(in srgb, #b9b9b9 22%, #333333);

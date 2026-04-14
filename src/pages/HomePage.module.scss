@@ -21,7 +21,7 @@
   gap: 12px;
   margin: 0 -16px 20px;
   padding: max(20px, env(safe-area-inset-top)) 16px 14px;
-  background: #ffffff;
+  background: transparent;
 }
 
 .brand {
@@ -471,10 +471,8 @@
   }
 
   .topBar {
-    background: #333333;
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.1),
-      0 8px 20px -18px rgba(0, 0, 0, 0.55);
+    background: transparent;
+    box-shadow: none;
   }
 
   .brandText,

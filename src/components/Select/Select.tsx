@@ -46,6 +46,22 @@ function findNextEnabledIndex(options: SelectOption[], startIndex: number, direc
   return -1
 }
 
+function findInitialActiveIndex(options: SelectOption[], selectedVisibleIndex: number): number {
+  if (selectedVisibleIndex >= 0 && !options[selectedVisibleIndex]?.disabled) {
+    return selectedVisibleIndex
+  }
+
+  return findNextEnabledIndex(options, -1, 1)
+}
+
+function resolveActiveIndex(options: SelectOption[], currentIndex: number, selectedVisibleIndex: number): number {
+  if (currentIndex >= 0 && !options[currentIndex]?.disabled) {
+    return currentIndex
+  }
+
+  return findInitialActiveIndex(options, selectedVisibleIndex)
+}
+
 export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select(
   {
     id,
@@ -82,6 +98,10 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
   const selectedVisibleIndex = useMemo(
     () => visibleOptions.findIndex((option) => option.value === value),
     [value, visibleOptions],
+  )
+  const effectiveActiveIndex = useMemo(
+    () => (isOpen ? resolveActiveIndex(visibleOptions, activeIndex, selectedVisibleIndex) : -1),
+    [activeIndex, isOpen, selectedVisibleIndex, visibleOptions],
   )
   const triggerLabel = selectedOption?.label ?? placeholder
 
@@ -139,17 +159,6 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
     }
   }, [isOpen, searchable])
 
-  useEffect(() => {
-    if (!isOpen) return
-
-    if (selectedVisibleIndex >= 0 && !visibleOptions[selectedVisibleIndex]?.disabled) {
-      setActiveIndex(selectedVisibleIndex)
-      return
-    }
-
-    setActiveIndex(findNextEnabledIndex(visibleOptions, -1, 1))
-  }, [isOpen, selectedVisibleIndex, visibleOptions])
-
   const openMenu = (): void => {
     setIsOpen(true)
     setSearchQuery('')
@@ -176,7 +185,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
         return
       }
 
-      const next = findNextEnabledIndex(visibleOptions, activeIndex, 1)
+      const next = findNextEnabledIndex(visibleOptions, effectiveActiveIndex, 1)
       if (next >= 0) setActiveIndex(next)
       return
     }
@@ -188,7 +197,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
         return
       }
 
-      const next = findNextEnabledIndex(visibleOptions, activeIndex, -1)
+      const next = findNextEnabledIndex(visibleOptions, effectiveActiveIndex, -1)
       if (next >= 0) setActiveIndex(next)
       return
     }
@@ -200,8 +209,8 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
         return
       }
 
-      if (activeIndex < 0) return
-      const activeOption = visibleOptions[activeIndex]
+      if (effectiveActiveIndex < 0) return
+      const activeOption = visibleOptions[effectiveActiveIndex]
       if (activeOption && !activeOption.disabled) {
         selectValue(activeOption.value)
       }
@@ -211,22 +220,22 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>): void => {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      const next = findNextEnabledIndex(visibleOptions, activeIndex, 1)
+      const next = findNextEnabledIndex(visibleOptions, effectiveActiveIndex, 1)
       if (next >= 0) setActiveIndex(next)
       return
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault()
-      const next = findNextEnabledIndex(visibleOptions, activeIndex, -1)
+      const next = findNextEnabledIndex(visibleOptions, effectiveActiveIndex, -1)
       if (next >= 0) setActiveIndex(next)
       return
     }
 
     if (event.key === 'Enter') {
       event.preventDefault()
-      if (activeIndex < 0) return
-      const activeOption = visibleOptions[activeIndex]
+      if (effectiveActiveIndex < 0) return
+      const activeOption = visibleOptions[effectiveActiveIndex]
       if (activeOption && !activeOption.disabled) {
         selectValue(activeOption.value)
       }
@@ -294,11 +303,11 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
               id={listboxId}
               role='listbox'
               className={styles.options}
-              aria-activedescendant={activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined}
+              aria-activedescendant={effectiveActiveIndex >= 0 ? `${listboxId}-option-${effectiveActiveIndex}` : undefined}
             >
               {visibleOptions.map((option, optionIndex) => {
                 const isSelected = option.value === value
-                const isActive = optionIndex === activeIndex
+                const isActive = optionIndex === effectiveActiveIndex
 
                 return (
                   <li
