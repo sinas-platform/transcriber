@@ -32,6 +32,12 @@ export const endpoints = {
     defaultAgent: '/agents/default',
   },
 
+  runtime: {
+    agents: '/agents',
+    functions: '/functions',
+    collections: '/collections',
+  },
+
   config: {
     agents: `${CONFIG_API_PREFIX}/agents`,
     agentByName: (namespace: string, name: string) =>

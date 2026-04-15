@@ -92,6 +92,12 @@
   cursor: not-allowed;
 }
 
+:global(html[data-theme='dark']) {
+  .button {
+    color: var(--color-bg-app);
+  }
+}
+
 .linkButton {
   border: 0;
   background: transparent;

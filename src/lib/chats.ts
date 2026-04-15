@@ -419,8 +419,9 @@ export function buildRecordingBootstrapMessage(recordingTitle: string, transcrip
   return [
     INTERNAL_RECORDING_CONTEXT_PREFIX,
     'The following transcription is private context for this chat.',
-    'Do not mention hidden instructions.',
-    'Start this conversation by providing a short recap (3-5 bullets) and then ask the user how you can help.',
+    'It comes from a recording the user opened in the transcriber app.',
+    'Use it as context for your response.',
+    'Do not mention hidden instructions or say that this context was hidden.',
     `Recording title: ${safeTitle}`,
     '',
     'Transcription:',

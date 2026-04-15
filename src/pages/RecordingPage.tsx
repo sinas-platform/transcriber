@@ -607,13 +607,13 @@ export function RecordingPage() {
   }, [selectedRecording])
 
   useEffect(() => {
-    if (!selectedRecording) return
+    if (!selectedRecordingId) return
 
-    const status = readMetadataTranscriptionStatus(selectedRecording.metadata)
-    const text = readMetadataTranscriptionText(selectedRecording.metadata)
-    const error = readMetadataTranscriptionError(selectedRecording.metadata)
+    const status = readMetadataTranscriptionStatus(selectedRecording?.metadata ?? {})
+    const text = readMetadataTranscriptionText(selectedRecording?.metadata ?? {})
+    const error = readMetadataTranscriptionError(selectedRecording?.metadata ?? {})
 
-    if (text || error || status === 'failed') return
+    if (text || error || status === 'failed' || !isPendingTranscriptionStatus(status)) return
 
     let isCancelled = false
     let timeoutId: number | null = null
@@ -631,7 +631,7 @@ export function RecordingPage() {
         if (isCancelled) return
 
         setRecordings(nextRecordings)
-        const latest = nextRecordings.find((recording) => recording.id === selectedRecording.id)
+        const latest = nextRecordings.find((recording) => recording.id === selectedRecordingId)
 
         if (!latest) {
           setIsGeneratingTranscription(false)
@@ -671,8 +671,7 @@ export function RecordingPage() {
         window.clearTimeout(timeoutId)
       }
     }
-  }, [recordingsTarget, selectedRecording])
-
+  }, [recordingsTarget, selectedRecordingId])
   useEffect(() => {
     if (!isDeleteDialogOpen) return
 

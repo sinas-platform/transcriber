@@ -407,7 +407,7 @@
 
 .saveButton {
   background: var(--color-text-primary);
-  color: #fff;
+  color: var(--color-bg-app);
 }
 
 .saveButton:disabled {

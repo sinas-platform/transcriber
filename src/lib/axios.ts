@@ -69,6 +69,7 @@ function authInterceptor(config: InternalAxiosRequestConfig): InternalAxiosReque
 
   const token = getAccessToken()
   const apiKey = env('VITE_X_API_KEY')?.trim()
+  const applicationManifest = env('VITE_APPLICATION_MANIFEST')?.trim() || 'sinas/transcriber'
 
   if (token) {
     setHeader(config, 'Authorization', `Bearer ${token}`)
@@ -76,6 +77,10 @@ function authInterceptor(config: InternalAxiosRequestConfig): InternalAxiosReque
 
   if (apiKey) {
     setHeader(config, 'X-API-Key', apiKey)
+  }
+
+  if (applicationManifest) {
+    setHeader(config, 'X-Application', applicationManifest)
   }
 
   return config

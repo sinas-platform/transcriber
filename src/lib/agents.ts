@@ -31,7 +31,7 @@ export interface AgentSummary {
 export type AudioFormat = 'wav' | 'mp3' | 'm4a' | 'ogg'
 
 export async function listAgents(): Promise<AgentSummary[]> {
-  const response = await runtimeApi.get<AgentResponse[]>(endpoints.config.agents)
+  const response = await runtimeApi.get<AgentResponse[]>(endpoints.runtime.agents)
 
   return response.data.map((agent) => ({
     id: agent.id,

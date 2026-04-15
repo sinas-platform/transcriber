@@ -4,6 +4,7 @@ type EnvKey =
   | 'VITE_X_API_KEY'
   | 'VITE_RECORDINGS_NAMESPACE'
   | 'VITE_RECORDINGS_COLLECTION'
+  | 'VITE_APPLICATION_MANIFEST'
 
 declare global {
   interface Window {
