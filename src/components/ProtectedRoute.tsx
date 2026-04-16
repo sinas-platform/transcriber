@@ -11,7 +11,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation()
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace state={{ from: location.pathname }} />
+    return (
+      <Navigate
+        to={{ pathname: '/auth/login', search: location.search }}
+        replace
+        state={{ from: location.pathname }}
+      />
+    )
   }
 
   return <>{children}</>

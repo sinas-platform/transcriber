@@ -52,8 +52,8 @@ interface StoredSession {
 
 export type AuthSession = StoredSession
 
-export function restoreAuthSession(): AuthSession | null {
-  const session = readStoredAuthSession()
+export function restoreAuthSession(workspaceUrl?: string): AuthSession | null {
+  const session = readStoredAuthSession(workspaceUrl)
   if (!session) return null
 
   return {
@@ -65,12 +65,12 @@ export function restoreAuthSession(): AuthSession | null {
   }
 }
 
-export function persistAuthSession(session: AuthSession): void {
-  writeStoredAuthSession(session)
+export function persistAuthSession(session: AuthSession, workspaceUrl?: string): void {
+  writeStoredAuthSession(session, workspaceUrl)
 }
 
-export function clearAuthSession(): void {
-  clearStoredAuthSession()
+export function clearAuthSession(workspaceUrl?: string): void {
+  clearStoredAuthSession(workspaceUrl)
 }
 
 export async function requestOtp(email: string): Promise<string> {
@@ -106,14 +106,18 @@ export async function listCurrentUserRoles(): Promise<string[]> {
     .filter((name): name is string => typeof name === 'string' && name.trim().length > 0)
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<{
+export async function refreshAccessToken(refreshToken: string, workspaceUrl?: string): Promise<{
   accessToken: string
   tokenType: string
   expiresIn: number
 }> {
-  const response = await runtimeApi.post<RefreshResponse>(endpoints.auth.refresh, {
-    refresh_token: refreshToken,
-  })
+  const response = await runtimeApi.post<RefreshResponse>(
+    endpoints.auth.refresh,
+    {
+      refresh_token: refreshToken,
+    },
+    workspaceUrl ? { baseURL: workspaceUrl } : undefined,
+  )
 
   return {
     accessToken: response.data.access_token,
@@ -125,6 +129,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
 export function applyRefreshedAccessToken(
   session: AuthSession,
   refreshed: { accessToken: string; tokenType: string; expiresIn: number },
+  workspaceUrl?: string,
 ): AuthSession {
   const nextSession: AuthSession = {
     ...session,
@@ -133,7 +138,7 @@ export function applyRefreshedAccessToken(
     expiresIn: refreshed.expiresIn,
   }
 
-  persistAuthSession(nextSession)
+  persistAuthSession(nextSession, workspaceUrl)
   return nextSession
 }
 
@@ -147,8 +152,9 @@ export function syncStoredSessionAccessToken(
   accessToken: string,
   tokenType?: string,
   expiresIn?: number,
+  workspaceUrl?: string,
 ): AuthSession | null {
-  const updated = replaceStoredAccessToken(accessToken, tokenType, expiresIn)
+  const updated = replaceStoredAccessToken(accessToken, tokenType, expiresIn, workspaceUrl)
   if (!updated) return null
 
   return {

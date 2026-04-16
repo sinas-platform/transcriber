@@ -8,7 +8,7 @@ import { useAuth } from '../features/auth/use-auth'
 import { getAuthErrorMessage } from '../features/auth/utils/get-auth-error-message'
 import { setApiBaseUrl } from '../lib/axios'
 import { emailSchema } from '../lib/validation'
-import { getWorkspaceUrl, setWorkspaceUrl } from '../lib/workspace'
+import { getWorkspaceUrl, setWorkspaceUrl, setWorkspaceUrlInQuery } from '../lib/workspace'
 
 function prettyHost(url: string): string {
   try {
@@ -52,7 +52,8 @@ export function LoginPage() {
     try {
       const sessionId = await requestLoginOtp(parsedEmail.data)
       setPendingOtpSession({ email: parsedEmail.data, sessionId })
-      navigate('/auth/otp', { replace: true })
+      const liveSearch = window.location.search
+      navigate({ pathname: '/auth/otp', search: liveSearch }, { replace: true })
     } catch (err) {
       setError(getAuthErrorMessage(err, 'Failed to send OTP'))
     } finally {
@@ -89,8 +90,21 @@ export function LoginPage() {
           onSave={(url) => {
             clearPendingOtpSession()
             setWorkspaceUrl(url)
+            setWorkspaceUrlInQuery(url)
             setWorkspaceUrlState(url)
             setApiBaseUrl(url)
+            void navigate(
+              {
+                pathname: '/auth/login',
+                search: window.location.search,
+              },
+              {
+                replace: true,
+                state: {
+                  keepLoginVisibleAfterWorkspaceSwitch: true,
+                },
+              },
+            )
             setError('')
             setEmailError('')
             setEmail('')

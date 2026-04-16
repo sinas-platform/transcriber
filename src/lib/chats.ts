@@ -2,6 +2,7 @@ import { applyRefreshedAccessToken, refreshAccessToken, restoreAuthSession } fro
 import { runtimeApi } from './axios'
 import { endpoints } from './endpoints'
 import { env } from './env'
+import { getWorkspaceUrl } from './workspace'
 
 interface ChatResponse {
   id: string
@@ -127,7 +128,13 @@ function mapChatWithMessages(response: ChatWithMessagesResponse): ChatWithMessag
   }
 }
 
-function getRuntimeBaseUrl(): string {
+function normalizeWorkspaceUrl(value?: string | null): string {
+  return (value ?? '').trim().replace(/\/+$/, '')
+}
+
+function getRuntimeBaseUrl(workspaceUrl?: string): string {
+  const workspaceBaseUrl = normalizeWorkspaceUrl(workspaceUrl)
+  if (workspaceBaseUrl) return workspaceBaseUrl
   return String(runtimeApi.defaults.baseURL || '').replace(/\/+$/, '')
 }
 
@@ -146,8 +153,12 @@ function buildRuntimeHeaders(baseHeaders: HeadersInit | undefined, accessToken: 
   return headers
 }
 
-async function runtimeFetchWithRefresh(url: string, init: RequestInit): Promise<Response> {
-  const session = restoreAuthSession()
+async function runtimeFetchWithRefresh(
+  url: string,
+  init: RequestInit,
+  workspaceUrl: string,
+): Promise<Response> {
+  const session = restoreAuthSession(workspaceUrl)
   let accessToken = session?.accessToken ?? null
 
   const executeRequest = (token: string | null): Promise<Response> =>
@@ -160,8 +171,8 @@ async function runtimeFetchWithRefresh(url: string, init: RequestInit): Promise<
 
   if (response.status === 401 && session?.refreshToken) {
     try {
-      const refreshed = await refreshAccessToken(session.refreshToken)
-      const nextSession = applyRefreshedAccessToken(session, refreshed)
+      const refreshed = await refreshAccessToken(session.refreshToken, workspaceUrl)
+      const nextSession = applyRefreshedAccessToken(session, refreshed, workspaceUrl)
       accessToken = nextSession.accessToken
       response = await executeRequest(accessToken)
     } catch {
@@ -452,19 +463,24 @@ export async function streamChatMessage(
   content: MessageContent,
   handlers: StreamChatHandlers = {},
 ): Promise<void> {
-  const baseUrl = getRuntimeBaseUrl()
+  const workspaceUrl = normalizeWorkspaceUrl(getWorkspaceUrl())
+  const baseUrl = getRuntimeBaseUrl(workspaceUrl)
   if (!baseUrl) {
     throw new Error('Runtime API base URL is not configured.')
   }
 
   const payload = JSON.stringify({ content })
-  const response = await runtimeFetchWithRefresh(`${baseUrl}${endpoints.chats.streamMessages(chatId)}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const response = await runtimeFetchWithRefresh(
+    `${baseUrl}${endpoints.chats.streamMessages(chatId)}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: payload,
     },
-    body: payload,
-  })
+    workspaceUrl,
+  )
 
   if (!response.ok) {
     let detail = ''

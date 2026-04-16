@@ -126,6 +126,12 @@
   font-size: 0.8125rem;
 }
 
+:global(html[data-theme='dark']) {
+  .backdrop {
+    background: rgba(24, 24, 24, 0.72);
+  }
+}
+
 @media (max-width: 43.75rem) {
   .panel {
     width: calc(100vw - 1.5rem);

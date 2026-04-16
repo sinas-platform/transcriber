@@ -528,13 +528,22 @@ export function ChatPage() {
               className={styles.backButton}
               onClick={() => {
                 if (!recordingId) {
-                  void navigate('/')
+                  void navigate({
+                    pathname: '/',
+                    search: location.search,
+                  })
                   return
                 }
 
-                void navigate(`/recordings/${recordingId}`, {
-                  state: recordingSourceState,
-                })
+                void navigate(
+                  {
+                    pathname: `/recordings/${recordingId}`,
+                    search: location.search,
+                  },
+                  {
+                    state: recordingSourceState,
+                  },
+                )
               }}
               aria-label='Back to recording'
             >

@@ -25,7 +25,8 @@ export function OtpPage() {
 
   useEffect(() => {
     if (pendingSession) return
-    navigate('/auth/login', { replace: true })
+    const liveSearch = window.location.search
+    navigate({ pathname: '/auth/login', search: liveSearch }, { replace: true })
   }, [navigate, pendingSession])
 
   const verifyOtpCode = useCallback(
@@ -45,7 +46,8 @@ export function OtpPage() {
       try {
         await verifyLoginOtp(pendingSession.sessionId, parsedOtp.data)
         clearPendingOtpSession()
-        navigate('/', { replace: true })
+        const liveSearch = window.location.search
+        navigate({ pathname: '/', search: liveSearch }, { replace: true })
       } catch (err) {
         setError(getAuthErrorMessage(err, 'Invalid OTP code'))
       } finally {
@@ -92,7 +94,8 @@ export function OtpPage() {
         onUseDifferentEmail={() => {
           clearPendingOtpSession()
           setPendingSession(null)
-          navigate('/auth/login', { replace: true })
+          const liveSearch = window.location.search
+          navigate({ pathname: '/auth/login', search: liveSearch }, { replace: true })
         }}
       />
     </AuthCard>

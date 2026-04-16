@@ -1,5 +1,6 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { getPendingOtpSession } from './features/auth/otp-session'
 import { useAuth } from './features/auth/use-auth'
 import { AllRecordingsPage } from './pages/AllRecordingsPage'
 import { ChatPage } from './pages/ChatPage'
@@ -12,14 +13,34 @@ import { SettingsPage } from './pages/SettingsPage'
 
 function App() {
   const { isAuthenticated } = useAuth()
+  const location = useLocation()
+  const hasPendingOtpSession = getPendingOtpSession() !== null
+  const keepLoginVisible =
+    (location.state as { keepLoginVisibleAfterWorkspaceSwitch?: boolean } | null)
+      ?.keepLoginVisibleAfterWorkspaceSwitch === true
 
   return (
     <Routes>
       <Route
         path="/auth/login"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+        element={
+          isAuthenticated && !keepLoginVisible ? (
+            <Navigate to={{ pathname: '/', search: location.search }} replace />
+          ) : (
+            <LoginPage />
+          )
+        }
       />
-      <Route path="/auth/otp" element={isAuthenticated ? <Navigate to="/" replace /> : <OtpPage />} />
+      <Route
+        path="/auth/otp"
+        element={
+          isAuthenticated && !hasPendingOtpSession ? (
+            <Navigate to={{ pathname: '/', search: location.search }} replace />
+          ) : (
+            <OtpPage />
+          )
+        }
+      />
 
       <Route
         path="/"
@@ -70,7 +91,18 @@ function App() {
         }
       />
 
-      <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/auth/login'} replace />} />
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to={{
+              pathname: isAuthenticated ? '/' : '/auth/login',
+              search: location.search,
+            }}
+            replace
+          />
+        }
+      />
     </Routes>
   )
 }

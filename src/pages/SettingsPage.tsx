@@ -1,5 +1,5 @@
 import { ArrowLeft, Moon, Sun } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranscriberTheme } from '../lib/use-transcriber-theme'
 import styles from './SettingsPage.module.scss'
 
@@ -31,6 +31,7 @@ function joinClasses(...classNames: Array<string | undefined | false>): string {
 
 export function SettingsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { theme, setTheme, isSavingTheme, themeErrorMessage, clearThemeError } = useTranscriberTheme()
 
   return (
@@ -41,6 +42,10 @@ export function SettingsPage() {
             type='button'
             className={styles.backButton}
             onClick={() => {
+              if (window.history.length <= 1) {
+                void navigate({ pathname: '/', search: location.search }, { replace: true })
+                return
+              }
               void navigate(-1)
             }}
           >

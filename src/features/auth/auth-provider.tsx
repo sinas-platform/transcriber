@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   applyRefreshedAccessToken,
   clearAuthSession,
@@ -11,38 +12,74 @@ import {
   verifyOtp,
   type AuthSession,
 } from '../../lib/auth'
-import { setApiBaseUrl } from '../../lib/axios'
+import { AUTH_SESSION_INVALIDATED_EVENT, setApiBaseUrl } from '../../lib/axios'
 import { getWorkspaceUrl } from '../../lib/workspace'
 import { AuthContext, type AuthContextValue } from './auth-context'
 
+function normalizeWorkspaceUrl(value?: string | null): string {
+  return (value ?? '').trim().replace(/\/+$/, '')
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(() => restoreAuthSession())
+  const location = useLocation()
+  const activeWorkspaceUrl = useMemo(
+    () => normalizeWorkspaceUrl(getWorkspaceUrl()),
+    [location.pathname, location.search],
+  )
+  const activeWorkspaceRef = useRef(activeWorkspaceUrl)
+  const [session, setSession] = useState<AuthSession | null>(() => restoreAuthSession(activeWorkspaceUrl))
   const refreshTimerRef = useRef<number | null>(null)
   const refreshToken = session?.refreshToken ?? null
 
   useEffect(() => {
-    setApiBaseUrl(getWorkspaceUrl() || undefined)
+    activeWorkspaceRef.current = activeWorkspaceUrl
+  }, [activeWorkspaceUrl])
+
+  useEffect(() => {
+    setApiBaseUrl(activeWorkspaceUrl || undefined)
+    setSession(restoreAuthSession(activeWorkspaceUrl))
+  }, [activeWorkspaceUrl])
+
+  useEffect(() => {
+    const handleSessionInvalidated = (event: Event): void => {
+      const detail = (event as CustomEvent<{ workspaceUrl?: string }>).detail
+      const invalidatedWorkspaceUrl = normalizeWorkspaceUrl(detail?.workspaceUrl)
+
+      if (!invalidatedWorkspaceUrl) return
+      if (invalidatedWorkspaceUrl !== activeWorkspaceRef.current) return
+
+      setSession(null)
+    }
+
+    window.addEventListener(AUTH_SESSION_INVALIDATED_EVENT, handleSessionInvalidated as EventListener)
+    return () => {
+      window.removeEventListener(AUTH_SESSION_INVALIDATED_EVENT, handleSessionInvalidated as EventListener)
+    }
   }, [])
 
   useEffect(() => {
     if (!refreshToken) return
 
     let cancelled = false
+    const workspaceForValidation = activeWorkspaceUrl
 
     const validateSession = async (): Promise<void> => {
       try {
         const user = await getCurrentUser()
         if (cancelled) return
+        if (workspaceForValidation !== activeWorkspaceRef.current) return
 
         setSession((currentSession) => {
           if (!currentSession) return null
+          if (workspaceForValidation !== activeWorkspaceRef.current) return currentSession
           const nextSession = { ...currentSession, user }
-          persistAuthSession(nextSession)
+          persistAuthSession(nextSession, workspaceForValidation)
           return nextSession
         })
       } catch {
         if (cancelled) return
-        clearAuthSession()
+        if (workspaceForValidation !== activeWorkspaceRef.current) return
+        clearAuthSession(workspaceForValidation)
         setSession(null)
       }
     }
@@ -52,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [refreshToken])
+  }, [activeWorkspaceUrl, refreshToken])
 
   useEffect(() => {
     if (refreshTimerRef.current) {
@@ -61,20 +98,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (!refreshToken) return
+    const workspaceForRefresh = activeWorkspaceUrl
 
     refreshTimerRef.current = window.setInterval(async () => {
-      const currentSession = restoreAuthSession()
+      if (workspaceForRefresh !== activeWorkspaceRef.current) return
+
+      const currentSession = restoreAuthSession(workspaceForRefresh)
       if (!currentSession) {
+        if (workspaceForRefresh !== activeWorkspaceRef.current) return
         setSession(null)
         return
       }
 
       try {
-        const refreshed = await refreshAccessToken(currentSession.refreshToken)
-        const nextSession = applyRefreshedAccessToken(currentSession, refreshed)
+        const refreshed = await refreshAccessToken(currentSession.refreshToken, workspaceForRefresh)
+        if (workspaceForRefresh !== activeWorkspaceRef.current) return
+
+        const nextSession = applyRefreshedAccessToken(currentSession, refreshed, workspaceForRefresh)
         setSession(nextSession)
       } catch {
-        clearAuthSession()
+        if (workspaceForRefresh !== activeWorkspaceRef.current) return
+        clearAuthSession(workspaceForRefresh)
         setSession(null)
       }
     }, 14 * 60 * 1000)
@@ -84,19 +128,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.clearInterval(refreshTimerRef.current)
       refreshTimerRef.current = null
     }
-  }, [refreshToken])
+  }, [activeWorkspaceUrl, refreshToken])
 
   const requestLoginOtp = useCallback(async (email: string): Promise<string> => {
     return requestOtp(email)
   }, [])
 
   const verifyLoginOtp = useCallback(async (sessionId: string, otpCode: string): Promise<void> => {
+    const workspaceForLogin = activeWorkspaceRef.current
     const nextSession = await verifyOtp(sessionId, otpCode)
-    persistAuthSession(nextSession)
+    persistAuthSession(nextSession, workspaceForLogin)
+    if (workspaceForLogin !== activeWorkspaceRef.current) return
     setSession(nextSession)
   }, [])
 
   const logout = useCallback((): void => {
+    const workspaceForLogout = activeWorkspaceRef.current
+
     if (refreshTimerRef.current) {
       window.clearInterval(refreshTimerRef.current)
       refreshTimerRef.current = null
@@ -106,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void revokeRefreshToken(refreshToken).catch(() => undefined)
     }
 
-    clearAuthSession()
+    clearAuthSession(workspaceForLogout)
     setSession(null)
   }, [refreshToken])
 

@@ -1,6 +1,6 @@
 import { ArrowLeft, Search, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Select, type SelectOption } from '../components/Select/Select'
 import { buildRecordingSourceState } from '../lib/recording-navigation'
 import {
@@ -356,6 +356,7 @@ function highlightQuery(text: string, query: string): ReactNode {
 
 export function AllRecordingsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [isLoadingRecordings, setIsLoadingRecordings] = useState(false)
   const [recordingsError, setRecordingsError] = useState<string | null>(null)
@@ -604,7 +605,16 @@ export function AllRecordingsPage() {
     <div className={`app-root ${styles.screen}`}>
       <main className={styles.main}>
         <header className={styles.header}>
-          <button type='button' className={styles.backButton} onClick={() => void navigate('/')}>
+          <button
+            type='button'
+            className={styles.backButton}
+            onClick={() =>
+              void navigate({
+                pathname: '/',
+                search: location.search,
+              })
+            }
+          >
             <ArrowLeft size={16} />
             Back
           </button>
@@ -760,9 +770,15 @@ export function AllRecordingsPage() {
                           return
                         }
 
-                        void navigate(`/recordings/${recording.id}`, {
-                          state: buildRecordingSourceState('/recordings'),
-                        })
+                        void navigate(
+                          {
+                            pathname: `/recordings/${recording.id}`,
+                            search: location.search,
+                          },
+                          {
+                            state: buildRecordingSourceState('/recordings'),
+                          },
+                        )
                       }}
                     >
                       <div className={styles.listItemContent}>

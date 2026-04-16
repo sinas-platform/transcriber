@@ -25,6 +25,7 @@ import {
   type RecordingFile,
 } from '../lib/recordings'
 import { buildRecordingSourceState, readRecordingSource } from '../lib/recording-navigation'
+import { clearWorkspaceUrlInQuery } from '../lib/workspace'
 import styles from './RecordingPage.module.scss'
 
 type PageView = 'recording' | 'sidebar'
@@ -734,12 +735,18 @@ export function RecordingPage() {
       setAvailableAgents((current) => sortAgentsByRecentUsage(current, recentAgentsByUser))
 
       const bootstrapMessage = buildRecordingBootstrapMessage(selectedRecordingLabel, transcriptionText)
-      void navigate(`/recordings/${selectedRecording.id}/chats/${chat.id}`, {
-        state: {
-          initialContent: bootstrapMessage,
-          ...recordingSourceState,
+      void navigate(
+        {
+          pathname: `/recordings/${selectedRecording.id}/chats/${chat.id}`,
+          search: location.search,
         },
-      })
+        {
+          state: {
+            initialContent: bootstrapMessage,
+            ...recordingSourceState,
+          },
+        },
+      )
     } catch (error) {
       setAgentChatError(getApiErrorMessage(error, 'Could not open chat with this agent.'))
     } finally {
@@ -758,6 +765,11 @@ export function RecordingPage() {
     setIsDeleteDialogOpen(false)
   }
 
+  const handleLogout = (): void => {
+    clearWorkspaceUrlInQuery()
+    logout()
+  }
+
   const confirmDeleteRecording = async (): Promise<void> => {
     if (!selectedRecording || isDeletingRecording) return
 
@@ -772,7 +784,7 @@ export function RecordingPage() {
       })
 
       setIsDeleteDialogOpen(false)
-      void navigate(backTarget, { replace: true })
+      void navigate({ pathname: backTarget, search: location.search }, { replace: true })
     } catch (error) {
       setDeleteRecordingError(getApiErrorMessage(error, 'Could not delete this recording.'))
     } finally {
@@ -790,23 +802,29 @@ export function RecordingPage() {
         onClose={() => setView('recording')}
         onNewRecording={() => {
           setView('recording')
-          void navigate('/')
+          void navigate({ pathname: '/', search: location.search })
         }}
         onSelectRecording={(recording) => {
           setView('recording')
-          void navigate(`/recordings/${recording.id}`, {
-            state: recordingSourceState,
-          })
+          void navigate(
+            {
+              pathname: `/recordings/${recording.id}`,
+              search: location.search,
+            },
+            {
+              state: recordingSourceState,
+            },
+          )
         }}
         onViewAllRecordings={() => {
           setView('recording')
-          void navigate('/recordings')
+          void navigate({ pathname: '/recordings', search: location.search })
         }}
         onOpenSettings={() => {
           setView('recording')
-          void navigate('/settings')
+          void navigate({ pathname: '/settings', search: location.search })
         }}
-        onLogout={logout}
+        onLogout={handleLogout}
       />
     )
   }
@@ -823,7 +841,11 @@ export function RecordingPage() {
         {!isLoadingRecording && recordingError ? (
           <section className={styles.detailSection}>
             <p className={styles.sectionError}>{recordingError}</p>
-            <button type='button' className={styles.sectionLinkButton} onClick={() => void navigate(backTarget)}>
+            <button
+              type='button'
+              className={styles.sectionLinkButton}
+              onClick={() => void navigate({ pathname: backTarget, search: location.search })}
+            >
               {returnLinkLabel}
             </button>
           </section>
@@ -832,7 +854,11 @@ export function RecordingPage() {
         {!isLoadingRecording && !recordingError && selectedRecording ? (
           <>
             <section className={styles.pageHeaderSection}>
-              <button type='button' className={styles.backButton} onClick={() => void navigate(backTarget)}>
+              <button
+                type='button'
+                className={styles.backButton}
+                onClick={() => void navigate({ pathname: backTarget, search: location.search })}
+              >
                 <ArrowLeft size={16} />
                 Back
               </button>
@@ -844,9 +870,15 @@ export function RecordingPage() {
                     type='button'
                     className={styles.editDetailsButton}
                     onClick={() =>
-                      void navigate(`/recordings/${selectedRecording.id}/details/edit`, {
-                        state: recordingSourceState,
-                      })
+                      void navigate(
+                        {
+                          pathname: `/recordings/${selectedRecording.id}/details/edit`,
+                          search: location.search,
+                        },
+                        {
+                          state: recordingSourceState,
+                        },
+                      )
                     }
                     aria-label='Edit recording details'
                     disabled={isDeletingRecording}

@@ -1,6 +1,6 @@
 import { Check, LogOut, Mic, Pause, Play, Settings, UserRound, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { RecentRecordingsList } from '../components/Home/RecentRecordingsList'
 import { useAuth } from '../features/auth/use-auth'
 import sinasLogo from '../icons/sinas-logo-rec.svg'
@@ -12,6 +12,7 @@ import {
   type RecordingFile,
   uploadRecording,
 } from '../lib/recordings'
+import { clearWorkspaceUrlInQuery } from '../lib/workspace'
 import styles from './HomePage.module.scss'
 
 type RecordingPhase = 'idle' | 'recording' | 'paused' | 'saving'
@@ -101,6 +102,7 @@ function pickHighestPriorityRole(roles: string[]): string | null {
 
 export function HomePage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { session, logout } = useAuth()
 
   const [phase, setPhase] = useState<RecordingPhase>('idle')
@@ -132,6 +134,7 @@ export function HomePage() {
 
   const handleLogout = (): void => {
     closeProfileMenu()
+    clearWorkspaceUrlInQuery()
     logout()
   }
 
@@ -351,9 +354,15 @@ export function HomePage() {
   }
 
   const selectRecording = (recording: RecordingFile): void => {
-    void navigate(`/recordings/${recording.id}`, {
-      state: buildRecordingSourceState('/'),
-    })
+    void navigate(
+      {
+        pathname: `/recordings/${recording.id}`,
+        search: location.search,
+      },
+      {
+        state: buildRecordingSourceState('/'),
+      },
+    )
   }
 
   useEffect(() => {
@@ -470,7 +479,12 @@ export function HomePage() {
             type='button'
             className={styles.iconAction}
             aria-label='Settings'
-            onClick={() => void navigate('/settings')}
+            onClick={() =>
+              void navigate({
+                pathname: '/settings',
+                search: location.search,
+              })
+            }
           >
             <Settings size={19} strokeWidth={2.1} />
           </button>
@@ -590,7 +604,12 @@ export function HomePage() {
             recordingsError={recordingsError}
             recordings={recordings}
             onSelectRecording={selectRecording}
-            onViewAllRecordings={() => void navigate('/recordings')}
+            onViewAllRecordings={() =>
+              void navigate({
+                pathname: '/recordings',
+                search: location.search,
+              })
+            }
           />
         </div>
       </main>

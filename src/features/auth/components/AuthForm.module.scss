@@ -93,6 +93,10 @@
 }
 
 :global(html[data-theme='dark']) {
+  .otpCaret {
+    background: #fff;
+  }
+
   .button {
     color: var(--color-bg-app);
   }

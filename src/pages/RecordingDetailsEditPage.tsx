@@ -292,9 +292,15 @@ export function RecordingDetailsEditPage() {
         nextMetadata,
       )
 
-      void navigate(`/recordings/${recording.id}`, {
-        state: recordingSourceState,
-      })
+      void navigate(
+        {
+          pathname: `/recordings/${recording.id}`,
+          search: location.search,
+        },
+        {
+          state: recordingSourceState,
+        },
+      )
     } catch (error) {
       const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
       setSaveError(typeof detail === 'string' && detail.trim() ? detail : 'Failed to save details.')
@@ -311,9 +317,15 @@ export function RecordingDetailsEditPage() {
             type='button'
             className={styles.backButton}
             onClick={() =>
-              void navigate(`/recordings/${recordingId}`, {
-                state: recordingSourceState,
-              })
+              void navigate(
+                {
+                  pathname: `/recordings/${recordingId}`,
+                  search: location.search,
+                },
+                {
+                  state: recordingSourceState,
+                },
+              )
             }
           >
             <ArrowLeft size={16} />
@@ -331,7 +343,11 @@ export function RecordingDetailsEditPage() {
         {!isLoading && loadError ? (
           <section className={styles.panel}>
             <p className={styles.sectionError}>{loadError}</p>
-            <button type='button' className={styles.linkButton} onClick={() => void navigate(backTarget)}>
+            <button
+              type='button'
+              className={styles.linkButton}
+              onClick={() => void navigate({ pathname: backTarget, search: location.search })}
+            >
               {returnLinkLabel}
             </button>
           </section>
