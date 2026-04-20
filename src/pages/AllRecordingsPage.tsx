@@ -2,6 +2,7 @@ import { ArrowLeft, Search, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Select, type SelectOption } from '../components/Select/Select'
+import { getApiErrorMessage } from '../lib/api-errors'
 import { buildRecordingSourceState } from '../lib/recording-navigation'
 import {
   deleteRecording,
@@ -52,16 +53,6 @@ const STATUS_CLASS_BY_TONE: Record<StatusTone, string> = {
 
 function joinClasses(...classes: Array<string | undefined | false>): string {
   return classes.filter(Boolean).join(' ')
-}
-
-function getApiErrorMessage(error: unknown, fallback: string): string {
-  const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-
-  if (typeof detail === 'string' && detail.trim()) {
-    return detail
-  }
-
-  return fallback
 }
 
 function readMetadataDurationMs(metadata: Record<string, unknown>): number | null {
@@ -388,7 +379,9 @@ export function AllRecordingsPage() {
       const next = await listRecordings(recordingsTarget)
       setRecordings(next)
     } catch (error) {
-      setRecordingsError(getApiErrorMessage(error, 'Failed to load recordings.'))
+      setRecordingsError(
+        getApiErrorMessage(error, 'Failed to load recordings.', { configErrorTarget: 'recordings' }),
+      )
     } finally {
       setIsLoadingRecordings(false)
     }
@@ -591,7 +584,9 @@ export function AllRecordingsPage() {
 
       await loadRecordings()
     } catch (error) {
-      setActionError(getApiErrorMessage(error, 'Could not delete recording.'))
+      setActionError(
+        getApiErrorMessage(error, 'Could not delete recording.', { configErrorTarget: 'recordings' }),
+      )
     } finally {
       setIsDeletingRecordings(false)
     }

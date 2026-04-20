@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getApiErrorDetail, getFriendlySetupError } from './api-errors'
 import { endpoints } from './endpoints'
 import { runtimeApi } from './axios'
 
@@ -99,6 +100,9 @@ export function isPreferenceAlreadyExistsError(error: unknown, key: string): boo
 }
 
 export function getPreferenceErrorMessage(error: unknown, fallback: string): string {
+  const setupMessage = getFriendlySetupError(error, 'preferences')
+  if (setupMessage) return setupMessage
+
   if (!axios.isAxiosError(error)) {
     if (error instanceof Error && error.message) return error.message
     return fallback
@@ -106,16 +110,8 @@ export function getPreferenceErrorMessage(error: unknown, fallback: string): str
 
   if (!error.response) return fallback
 
-  const data = error.response.data
-  if (typeof data === 'string' && data.trim()) return data
-
-  if (data && typeof data === 'object') {
-    const detail = (data as Record<string, unknown>).detail
-    if (typeof detail === 'string' && detail.trim()) return detail
-
-    const message = (data as Record<string, unknown>).message
-    if (typeof message === 'string' && message.trim()) return message
-  }
+  const detail = getApiErrorDetail(error)
+  if (detail) return detail
 
   return error.message || fallback
 }

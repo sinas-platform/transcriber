@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sidebar } from '../components/Sidebar/Sidebar'
 import { useAuth } from '../features/auth/use-auth'
+import { getApiErrorMessage, getFriendlySetupError } from '../lib/api-errors'
 import {
   listAgents,
   type AgentSummary,
@@ -279,16 +280,6 @@ async function buildSeekablePlaybackBlob(sourceBlob: Blob): Promise<Blob> {
   }
 }
 
-function getApiErrorMessage(error: unknown, fallback: string): string {
-  const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-
-  if (typeof detail === 'string' && detail.trim()) {
-    return detail
-  }
-
-  return fallback
-}
-
 function readMetadataTranscriptionStatus(metadata: Record<string, unknown>): string | null {
   const value = metadata.transcription_status
   if (typeof value !== 'string' || !value.trim()) return null
@@ -429,7 +420,9 @@ export function RecordingPage() {
       setRecordings(next)
       return next
     } catch (error) {
-      setRecordingsError(getApiErrorMessage(error, 'Failed to load recordings.'))
+      setRecordingsError(
+        getApiErrorMessage(error, 'Failed to load recordings.', { configErrorTarget: 'recordings' }),
+      )
       throw error
     } finally {
       setIsLoadingRecordings(false)
@@ -490,7 +483,9 @@ export function RecordingPage() {
         })
       } catch (error) {
         if (isCancelled) return
-        setRecordingError(getApiErrorMessage(error, 'Failed to load the recording.'))
+        setRecordingError(
+          getApiErrorMessage(error, 'Failed to load the recording.', { configErrorTarget: 'recordings' }),
+        )
       } finally {
         if (!isCancelled) {
           setIsLoadingRecording(false)
@@ -547,7 +542,11 @@ export function RecordingPage() {
         setSelectedRecordingUrl(audioResult.value)
       } else {
         setSelectedRecordingUrl(null)
-        setRecordingUrlError(getApiErrorMessage(audioResult.reason, 'Could not load the recording audio.'))
+        setRecordingUrlError(
+          getApiErrorMessage(audioResult.reason, 'Could not load the recording audio.', {
+            configErrorTarget: 'recordings',
+          }),
+        )
       }
       setIsLoadingRecordingUrl(false)
 
@@ -649,7 +648,14 @@ export function RecordingPage() {
           setIsGeneratingTranscription(false)
           return
         }
-      } catch {
+      } catch (error) {
+        const setupMessage = getFriendlySetupError(error, 'recordings')
+        if (setupMessage) {
+          setRecordingsError(setupMessage)
+          setIsGeneratingTranscription(false)
+          return
+        }
+
         // Polling errors should not break the page; keep the latest visible state.
       }
 
@@ -786,7 +792,9 @@ export function RecordingPage() {
       setIsDeleteDialogOpen(false)
       void navigate({ pathname: backTarget, search: location.search }, { replace: true })
     } catch (error) {
-      setDeleteRecordingError(getApiErrorMessage(error, 'Could not delete this recording.'))
+      setDeleteRecordingError(
+        getApiErrorMessage(error, 'Could not delete this recording.', { configErrorTarget: 'recordings' }),
+      )
     } finally {
       setIsDeletingRecording(false)
     }

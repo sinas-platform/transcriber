@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { RecentRecordingsList } from '../components/Home/RecentRecordingsList'
 import { useAuth } from '../features/auth/use-auth'
 import sinasLogo from '../icons/sinas-logo-rec.svg'
+import { getApiErrorMessage } from '../lib/api-errors'
 import { listCurrentUserRoles } from '../lib/auth'
 import { buildRecordingSourceState } from '../lib/recording-navigation'
 import {
@@ -50,16 +51,6 @@ function getStartErrorMessage(error: unknown): string {
   }
 
   return 'Unable to start recording right now. Please try again.'
-}
-
-function getApiErrorMessage(error: unknown, fallback: string): string {
-  const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-
-  if (typeof detail === 'string' && detail.trim()) {
-    return detail
-  }
-
-  return fallback
 }
 
 function normalizeRoleName(role: string): string {
@@ -146,7 +137,9 @@ export function HomePage() {
       const next = await listRecordings(recordingsTarget)
       setRecordings(next)
     } catch (error) {
-      setRecordingsError(getApiErrorMessage(error, 'Failed to load recordings.'))
+      setRecordingsError(
+        getApiErrorMessage(error, 'Failed to load recordings.', { configErrorTarget: 'recordings' }),
+      )
     } finally {
       setIsLoadingRecordings(false)
     }
@@ -226,7 +219,11 @@ export function HomePage() {
       setErrorMessage(null)
       await loadRecordings()
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error, 'Failed to save recording. Please try again.'))
+      setErrorMessage(
+        getApiErrorMessage(error, 'Failed to save recording. Please try again.', {
+          configErrorTarget: 'recordings',
+        }),
+      )
     } finally {
       resetElapsedClock()
       setPhase('idle')

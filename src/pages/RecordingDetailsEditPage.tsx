@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { size } from '@floating-ui/react'
 import DatePicker from 'react-datepicker'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { getApiErrorMessage } from '../lib/api-errors'
 import { buildRecordingSourceState, readRecordingSource } from '../lib/recording-navigation'
 import {
   getRecordingsTarget,
@@ -207,8 +208,10 @@ export function RecordingDetailsEditPage() {
 
       setRecording(selected)
       setForm(readInitialForm(selected))
-    } catch {
-      setLoadError('Failed to load recording details.')
+    } catch (error) {
+      setLoadError(
+        getApiErrorMessage(error, 'Failed to load recording details.', { configErrorTarget: 'recordings' }),
+      )
       setRecording(null)
     } finally {
       setIsLoading(false)
@@ -302,8 +305,7 @@ export function RecordingDetailsEditPage() {
         },
       )
     } catch (error) {
-      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setSaveError(typeof detail === 'string' && detail.trim() ? detail : 'Failed to save details.')
+      setSaveError(getApiErrorMessage(error, 'Failed to save details.', { configErrorTarget: 'recordings' }))
     } finally {
       setIsSaving(false)
     }
