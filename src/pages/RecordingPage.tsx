@@ -25,12 +25,30 @@ import {
   listRecordings,
   type RecordingFile,
 } from '../lib/recordings'
+import {
+  deleteSavedTodo,
+  extractAndPersistTodosForRecording,
+  getTodoErrorMessage,
+  listSavedTodosForRecording,
+  updateSavedTodo,
+  updateSavedTodoStatus,
+  type SavedTodo,
+} from '../lib/todos'
+import { env } from '../lib/env'
 import { buildRecordingSourceState, readRecordingSource } from '../lib/recording-navigation'
 import { clearWorkspaceUrlInQuery } from '../lib/workspace'
 import styles from './RecordingPage.module.scss'
 
 type PageView = 'recording' | 'sidebar'
 type RecordingMember = { name: string; role: string }
+type TodoPriorityValue = '' | 'low' | 'medium' | 'high'
+type TodoEditDraft = {
+  task: string
+  assignee: string
+  dueDate: string
+  priority: TodoPriorityValue
+  notes: string
+}
 
 function readMetadataDurationMs(metadata: Record<string, unknown>): number | null {
   const value = metadata.duration_ms
@@ -59,6 +77,13 @@ function readMetadataDetailsTime(metadata: Record<string, unknown>): string | nu
 
 function readMetadataDetailsLocation(metadata: Record<string, unknown>): string | null {
   const value = metadata.details_location
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  return normalized || null
+}
+
+function readMetadataDetailsNotes(metadata: Record<string, unknown>): string | null {
+  const value = metadata.details_notes
   if (typeof value !== 'string') return null
   const normalized = value.trim()
   return normalized || null
@@ -303,6 +328,108 @@ function isPendingTranscriptionStatus(status: string | null): boolean {
   return status === 'pending' || status === 'queued' || status === 'processing' || status === 'running'
 }
 
+function normalizeComparableText(value: string | null | undefined): string {
+  return (value ?? '').trim().toLowerCase()
+}
+
+function findTodoAgent(agents: AgentSummary[]): AgentSummary | null {
+  const configuredNamespace = normalizeComparableText(env('VITE_TODO_AGENT_NAMESPACE'))
+  const configuredName = normalizeComparableText(env('VITE_TODO_AGENT_NAME'))
+
+  if (configuredNamespace && configuredName) {
+    const configuredMatch = agents.find(
+      (agent) =>
+        normalizeComparableText(agent.namespace) === configuredNamespace &&
+        normalizeComparableText(agent.name) === configuredName,
+    )
+    if (configuredMatch) return configuredMatch
+  }
+
+  const keywordPatterns = [/to[-\s]?do/, /action\s*items?/, /\btasks?\b/]
+
+  return (
+    agents.find((agent) => {
+      const searchable = `${normalizeComparableText(agent.name)} ${normalizeComparableText(agent.description)}`
+      return keywordPatterns.some((pattern) => pattern.test(searchable))
+    }) ?? null
+  )
+}
+
+function formatSavedTodoDueDate(value: string | null): string | null {
+  if (!value) return null
+
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed)
+  if (dateOnlyMatch) {
+    const year = Number.parseInt(dateOnlyMatch[1], 10)
+    const monthIndex = Number.parseInt(dateOnlyMatch[2], 10) - 1
+    const day = Number.parseInt(dateOnlyMatch[3], 10)
+    const parsed = new Date(year, monthIndex, day)
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return `${String(day).padStart(2, '0')}.${String(monthIndex + 1).padStart(2, '0')}.${year}`
+    }
+  }
+
+  const europeanMatch = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/.exec(trimmed)
+  if (europeanMatch) {
+    const day = Number.parseInt(europeanMatch[1], 10)
+    const month = Number.parseInt(europeanMatch[2], 10)
+    const year = Number.parseInt(europeanMatch[3], 10)
+    const parsed = new Date(year, month - 1, day)
+    if (!Number.isNaN(parsed.getTime())) {
+      return `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`
+    }
+  }
+
+  const parsed = new Date(trimmed)
+  if (Number.isNaN(parsed.getTime())) return trimmed
+
+  return `${String(parsed.getDate()).padStart(2, '0')}.${String(parsed.getMonth() + 1).padStart(2, '0')}.${parsed.getFullYear()} ${String(parsed.getHours()).padStart(2, '0')}:${String(parsed.getMinutes()).padStart(2, '0')}`
+}
+
+function formatDueDateForInput(value: string | null): string {
+  const formatted = formatSavedTodoDueDate(value)
+  return formatted ? formatted.split(' ')[0] : ''
+}
+
+function buildSavedTodoMeta(todo: SavedTodo): string {
+  const parts: string[] = [todo.value.status === 'done' ? 'Done' : 'Open']
+
+  if (todo.value.assignee) {
+    parts.push(`Assignee: ${todo.value.assignee}`)
+  }
+
+  const dueLabel = formatSavedTodoDueDate(todo.value.due_date)
+  if (dueLabel) {
+    parts.push(`Due: ${dueLabel}`)
+  }
+
+  if (todo.value.priority) {
+    parts.push(`Priority: ${todo.value.priority}`)
+  }
+
+  return parts.join(' • ')
+}
+
+function sortSavedTodosForUi(todos: SavedTodo[]): SavedTodo[] {
+  const openTodos = todos.filter((todo) => todo.value.status === 'open')
+  const doneTodos = todos.filter((todo) => todo.value.status === 'done')
+  return [...openTodos, ...doneTodos]
+}
+
+function buildTodoEditDraft(todo: SavedTodo): TodoEditDraft {
+  return {
+    task: todo.value.task,
+    assignee: todo.value.assignee ?? '',
+    dueDate: formatDueDateForInput(todo.value.due_date),
+    priority: todo.value.priority ?? '',
+    notes: todo.value.notes ?? '',
+  }
+}
+
 export function RecordingPage() {
   const { logout, session } = useAuth()
   const navigate = useNavigate()
@@ -344,6 +471,17 @@ export function RecordingPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeletingRecording, setIsDeletingRecording] = useState(false)
   const [deleteRecordingError, setDeleteRecordingError] = useState<string | null>(null)
+  const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false)
+  const [pendingTodoDelete, setPendingTodoDelete] = useState<SavedTodo | null>(null)
+  const [isDeletingTodo, setIsDeletingTodo] = useState(false)
+  const [savedTodos, setSavedTodos] = useState<SavedTodo[]>([])
+  const [isLoadingSavedTodos, setIsLoadingSavedTodos] = useState(false)
+  const [savedTodosError, setSavedTodosError] = useState<string | null>(null)
+  const [isExtractingTodos, setIsExtractingTodos] = useState(false)
+  const [todoExtractionSummary, setTodoExtractionSummary] = useState<string | null>(null)
+  const [updatingTodoKey, setUpdatingTodoKey] = useState<string | null>(null)
+  const [editingTodoKey, setEditingTodoKey] = useState<string | null>(null)
+  const [todoEditDraft, setTodoEditDraft] = useState<TodoEditDraft | null>(null)
 
   const playbackObjectUrlRef = useRef<string | null>(null)
   const copyResetTimeoutRef = useRef<number | null>(null)
@@ -374,6 +512,7 @@ export function RecordingPage() {
         date: null,
         time: null,
         location: null,
+        notes: null,
         members: [] as RecordingMember[],
         hasAny: false,
       }
@@ -383,19 +522,22 @@ export function RecordingPage() {
     const date = formatDetailsDate(readMetadataDetailsDate(metadata))
     const time = readMetadataDetailsTime(metadata)
     const location = readMetadataDetailsLocation(metadata)
+    const notes = readMetadataDetailsNotes(metadata)
     const members = readMetadataDetailsMembers(metadata)
-    const hasAny = Boolean(date || time || location || members.length > 0)
+    const hasAny = Boolean(date || time || location || notes || members.length > 0)
 
     return {
       date,
       time,
       location,
+      notes,
       members,
       hasAny,
     }
   }, [selectedRecording])
 
   const canExpandTranscription = Boolean(transcription && transcription.length > 320)
+  const hasSavedTodos = savedTodos.length > 0
 
   const clearCopyResetTimer = (): void => {
     if (copyResetTimeoutRef.current !== null) {
@@ -429,6 +571,25 @@ export function RecordingPage() {
     }
   }, [recordingsTarget])
 
+  const loadSavedTodos = useCallback(async (nextRecordingId: string): Promise<void> => {
+    setIsLoadingSavedTodos(true)
+    setSavedTodosError(null)
+
+    try {
+      const todos = await listSavedTodosForRecording(nextRecordingId)
+      setSavedTodos(sortSavedTodosForUi(todos))
+      setEditingTodoKey(null)
+      setTodoEditDraft(null)
+    } catch (error) {
+      setSavedTodosError(getTodoErrorMessage(error, 'Could not load saved to-dos.'))
+      setSavedTodos([])
+      setEditingTodoKey(null)
+      setTodoEditDraft(null)
+    } finally {
+      setIsLoadingSavedTodos(false)
+    }
+  }, [])
+
   useEffect(() => {
     let isCancelled = false
 
@@ -454,6 +615,17 @@ export function RecordingPage() {
       setIsDeleteDialogOpen(false)
       setIsDeletingRecording(false)
       setDeleteRecordingError(null)
+      setIsRegenerateDialogOpen(false)
+      setPendingTodoDelete(null)
+      setIsDeletingTodo(false)
+      setSavedTodos([])
+      setIsLoadingSavedTodos(false)
+      setSavedTodosError(null)
+      setIsExtractingTodos(false)
+      setTodoExtractionSummary(null)
+      setUpdatingTodoKey(null)
+      setEditingTodoKey(null)
+      setTodoEditDraft(null)
       revokePlaybackObjectUrl()
 
       if (!recordingId) {
@@ -501,6 +673,22 @@ export function RecordingPage() {
   }, [loadRecordings, recordingId])
 
   const selectedRecordingId = selectedRecording?.id ?? null
+
+  useEffect(() => {
+    if (!selectedRecordingId) {
+      setIsRegenerateDialogOpen(false)
+      setPendingTodoDelete(null)
+      setIsDeletingTodo(false)
+      setSavedTodos([])
+      setSavedTodosError(null)
+      setIsLoadingSavedTodos(false)
+      setEditingTodoKey(null)
+      setTodoEditDraft(null)
+      return
+    }
+
+    void loadSavedTodos(selectedRecordingId)
+  }, [loadSavedTodos, selectedRecordingId])
 
   useEffect(() => {
     if (!selectedRecordingId || !playbackTarget) {
@@ -694,6 +882,34 @@ export function RecordingPage() {
   }, [isDeleteDialogOpen, isDeletingRecording])
 
   useEffect(() => {
+    if (!pendingTodoDelete) return
+
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || isDeletingTodo) return
+      setPendingTodoDelete(null)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [pendingTodoDelete, isDeletingTodo])
+
+  useEffect(() => {
+    if (!isRegenerateDialogOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || isExtractingTodos) return
+      setIsRegenerateDialogOpen(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isRegenerateDialogOpen, isExtractingTodos])
+
+  useEffect(() => {
     return () => {
       revokePlaybackObjectUrl()
       clearCopyResetTimer()
@@ -757,6 +973,187 @@ export function RecordingPage() {
       setAgentChatError(getApiErrorMessage(error, 'Could not open chat with this agent.'))
     } finally {
       setIsOpeningAgentChatId(null)
+    }
+  }
+
+  const extractAndSaveTodos = async (skipRegenerateConfirm = false): Promise<void> => {
+    if (!selectedRecordingId || !selectedRecording || isExtractingTodos) return
+
+    const transcriptionText = transcription?.trim() || ''
+    if (!transcriptionText) {
+      if (isGeneratingTranscription) {
+        setSavedTodosError('Transcription is still being generated. Please wait before extracting to-dos.')
+      } else {
+        setSavedTodosError('Transcription is not available for this recording yet.')
+      }
+      return
+    }
+
+    const todoAgent = findTodoAgent(availableAgents)
+    if (!todoAgent) {
+      setSavedTodosError(
+        'No to-do agent is available. Activate one, or set VITE_TODO_AGENT_NAMESPACE and VITE_TODO_AGENT_NAME.',
+      )
+      return
+    }
+
+    if (hasSavedTodos && !skipRegenerateConfirm) {
+      setIsRegenerateDialogOpen(true)
+      return
+    }
+
+    setIsExtractingTodos(true)
+    setSavedTodosError(null)
+    setTodoExtractionSummary(null)
+
+    try {
+      const result = await extractAndPersistTodosForRecording({
+        recordingId: selectedRecordingId,
+        recordingTitle: selectedRecordingLabel,
+        transcription: transcriptionText,
+        agentNamespace: todoAgent.namespace,
+        agentName: todoAgent.name,
+      })
+
+      setSavedTodos(sortSavedTodosForUi(result.savedTodos))
+      setEditingTodoKey(null)
+      setTodoEditDraft(null)
+
+      const summaryParts = [`Created ${result.createdCount} new to-dos.`, `Skipped ${result.duplicateCount} duplicates.`]
+      if (result.invalidCount > 0) {
+        summaryParts.push(`Ignored ${result.invalidCount} invalid item${result.invalidCount === 1 ? '' : 's'}.`)
+      }
+
+      setTodoExtractionSummary(summaryParts.join(' '))
+    } catch (error) {
+      setSavedTodosError(getTodoErrorMessage(error, 'Could not generate and save to-dos.'))
+    } finally {
+      setIsExtractingTodos(false)
+    }
+  }
+
+  const closeRegenerateDialog = (): void => {
+    if (isExtractingTodos) return
+    setIsRegenerateDialogOpen(false)
+  }
+
+  const confirmRegenerateTodos = async (): Promise<void> => {
+    if (isExtractingTodos) return
+    setIsRegenerateDialogOpen(false)
+    await extractAndSaveTodos(true)
+  }
+
+  const toggleSavedTodoStatus = async (todo: SavedTodo): Promise<void> => {
+    if (updatingTodoKey || editingTodoKey === todo.key) return
+
+    setUpdatingTodoKey(todo.key)
+    setSavedTodosError(null)
+    setTodoExtractionSummary(null)
+
+    try {
+      const nextStatus = todo.value.status === 'done' ? 'open' : 'done'
+      const updated = await updateSavedTodoStatus(todo, nextStatus)
+
+      setSavedTodos((current) => sortSavedTodosForUi(current.map((entry) => (entry.key === updated.key ? updated : entry))))
+    } catch (error) {
+      setSavedTodosError(getTodoErrorMessage(error, 'Could not update to-do status.'))
+    } finally {
+      setUpdatingTodoKey(null)
+    }
+  }
+
+  const startEditingTodo = (todo: SavedTodo): void => {
+    if (updatingTodoKey || isExtractingTodos) return
+    setSavedTodosError(null)
+    setTodoExtractionSummary(null)
+    setEditingTodoKey(todo.key)
+    setTodoEditDraft(buildTodoEditDraft(todo))
+  }
+
+  const cancelEditingTodo = (): void => {
+    if (updatingTodoKey) return
+    setEditingTodoKey(null)
+    setTodoEditDraft(null)
+  }
+
+  const saveEditedTodo = async (): Promise<void> => {
+    if (!editingTodoKey || !todoEditDraft || updatingTodoKey) return
+
+    const targetTodo = savedTodos.find((entry) => entry.key === editingTodoKey)
+    if (!targetTodo) {
+      setEditingTodoKey(null)
+      setTodoEditDraft(null)
+      return
+    }
+
+    const nextTask = todoEditDraft.task.trim()
+    if (!nextTask) {
+      setSavedTodosError('To-do title is required.')
+      return
+    }
+
+    setUpdatingTodoKey(targetTodo.key)
+    setSavedTodosError(null)
+    setTodoExtractionSummary(null)
+
+    try {
+      const updated = await updateSavedTodo(targetTodo, {
+        task: nextTask,
+        assignee: todoEditDraft.assignee.trim() || null,
+        due_date: todoEditDraft.dueDate.trim() || null,
+        priority: todoEditDraft.priority || null,
+        notes: todoEditDraft.notes.trim() || null,
+      })
+
+      setSavedTodos((current) =>
+        sortSavedTodosForUi(
+          current.map((entry) => (entry.key === targetTodo.key ? updated : entry)),
+        ),
+      )
+      setEditingTodoKey(null)
+      setTodoEditDraft(null)
+    } catch (error) {
+      setSavedTodosError(getTodoErrorMessage(error, 'Could not save to-do changes.'))
+    } finally {
+      setUpdatingTodoKey(null)
+    }
+  }
+
+  const removeSavedTodo = (todo: SavedTodo): void => {
+    if (updatingTodoKey || isDeletingTodo) return
+    setSavedTodosError(null)
+    setTodoExtractionSummary(null)
+    setPendingTodoDelete(todo)
+  }
+
+  const closeTodoDeleteDialog = (): void => {
+    if (isDeletingTodo) return
+    setPendingTodoDelete(null)
+  }
+
+  const confirmDeleteTodo = async (): Promise<void> => {
+    if (!pendingTodoDelete || isDeletingTodo) return
+
+    const todo = pendingTodoDelete
+    setUpdatingTodoKey(todo.key)
+    setIsDeletingTodo(true)
+    setSavedTodosError(null)
+    setTodoExtractionSummary(null)
+
+    try {
+      await deleteSavedTodo(todo)
+      setSavedTodos((current) => current.filter((entry) => entry.key !== todo.key))
+      setPendingTodoDelete(null)
+
+      if (editingTodoKey === todo.key) {
+        setEditingTodoKey(null)
+        setTodoEditDraft(null)
+      }
+    } catch (error) {
+      setSavedTodosError(getTodoErrorMessage(error, 'Could not delete to-do.'))
+    } finally {
+      setIsDeletingTodo(false)
+      setUpdatingTodoKey(null)
     }
   }
 
@@ -934,6 +1331,12 @@ export function RecordingPage() {
                       <span className={styles.metadataValue}>{selectedRecordingDetails.location}</span>
                     </div>
                   ) : null}
+                  {selectedRecordingDetails.notes ? (
+                    <div className={styles.metadataRow}>
+                      <span className={styles.metadataLabel}>Notes</span>
+                      <span className={styles.metadataValue}>{selectedRecordingDetails.notes}</span>
+                    </div>
+                  ) : null}
                   {selectedRecordingDetails.members.length > 0 ? (
                     <div className={styles.metadataRow}>
                       <span className={styles.metadataLabel}>Members</span>
@@ -1053,6 +1456,183 @@ export function RecordingPage() {
             </section>
 
             <section className={styles.detailSection}>
+              <div className={styles.sectionHeaderRow}>
+                <h2 className={styles.sectionTitle}>Saved to-dos</h2>
+                <div className={styles.sectionActions}>
+                  <button
+                    type='button'
+                    className={styles.sectionLinkButton}
+                    onClick={() => void extractAndSaveTodos()}
+                    disabled={isExtractingTodos || isGeneratingTranscription}
+                  >
+                    {isExtractingTodos ? 'Generating...' : hasSavedTodos ? 'Regenerate list' : 'Generate to-do list'}
+                  </button>
+                </div>
+              </div>
+
+              {todoExtractionSummary ? <p className={styles.sectionState}>{todoExtractionSummary}</p> : null}
+              {isLoadingSavedTodos ? <p className={styles.sectionState}>Loading saved to-dos...</p> : null}
+              {savedTodosError ? <p className={styles.sectionError}>{savedTodosError}</p> : null}
+
+              {!isLoadingSavedTodos && !savedTodosError && savedTodos.length === 0 ? (
+                <p className={styles.sectionState}>No to-dos yet. Generate a to-do list from this transcription.</p>
+              ) : null}
+
+              {!isLoadingSavedTodos && !savedTodosError && savedTodos.length > 0 ? (
+                <ul className={styles.todoList}>
+                  {savedTodos.map((todo) => {
+                    const isUpdatingTodo = updatingTodoKey === todo.key
+                    const isTodoDone = todo.value.status === 'done'
+                    const isEditingTodo = editingTodoKey === todo.key
+                    const isBusy = Boolean(updatingTodoKey)
+
+                    return (
+                      <li key={todo.key} className={`${styles.todoItem} ${isTodoDone ? styles.todoItemDone : ''}`}>
+                        <div className={styles.todoRow}>
+                          <p className={`${styles.todoTaskText} ${isTodoDone ? styles.todoTaskTextDone : ''}`}>{todo.value.task}</p>
+                          <div className={styles.todoActions}>
+                            <button
+                              type='button'
+                              className={styles.todoStatusButton}
+                              onClick={() => void toggleSavedTodoStatus(todo)}
+                              disabled={isBusy || isEditingTodo}
+                            >
+                              {isUpdatingTodo ? 'Saving...' : isTodoDone ? 'Mark open' : 'Mark done'}
+                            </button>
+                            <button
+                              type='button'
+                              className={styles.todoIconButton}
+                              onClick={() => startEditingTodo(todo)}
+                              disabled={isBusy || isEditingTodo}
+                              aria-label='Edit to-do'
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type='button'
+                              className={styles.todoIconButton}
+                              onClick={() => void removeSavedTodo(todo)}
+                              disabled={isBusy}
+                              aria-label='Delete to-do'
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {isEditingTodo && todoEditDraft ? (
+                          <div className={styles.todoEditForm}>
+                            <label className={styles.todoEditLabel}>
+                              Task
+                              <input
+                                type='text'
+                                className={styles.todoEditInput}
+                                value={todoEditDraft.task}
+                                onChange={(event) =>
+                                  setTodoEditDraft((current) => (current ? { ...current, task: event.target.value } : current))
+                                }
+                                disabled={isBusy}
+                              />
+                            </label>
+                            <div className={styles.todoEditGrid}>
+                              <label className={styles.todoEditLabel}>
+                                Assignee
+                                <input
+                                  type='text'
+                                  className={styles.todoEditInput}
+                                  value={todoEditDraft.assignee}
+                                  onChange={(event) =>
+                                    setTodoEditDraft((current) =>
+                                      current ? { ...current, assignee: event.target.value } : current,
+                                    )
+                                  }
+                                  disabled={isBusy}
+                                />
+                              </label>
+                              <label className={styles.todoEditLabel}>
+                                Due date
+                                <input
+                                  type='text'
+                                  className={styles.todoEditInput}
+                                  placeholder='DD.MM.YYYY'
+                                  value={todoEditDraft.dueDate}
+                                  onChange={(event) =>
+                                    setTodoEditDraft((current) =>
+                                      current ? { ...current, dueDate: event.target.value } : current,
+                                    )
+                                  }
+                                  disabled={isBusy}
+                                />
+                              </label>
+                            </div>
+                            <label className={styles.todoEditLabel}>
+                              Priority
+                              <select
+                                className={styles.todoEditInput}
+                                value={todoEditDraft.priority}
+                                onChange={(event) =>
+                                  setTodoEditDraft((current) =>
+                                    current
+                                      ? {
+                                          ...current,
+                                          priority: event.target.value as TodoPriorityValue,
+                                        }
+                                      : current,
+                                  )
+                                }
+                                disabled={isBusy}
+                              >
+                                <option value=''>None</option>
+                                <option value='low'>Low</option>
+                                <option value='medium'>Medium</option>
+                                <option value='high'>High</option>
+                              </select>
+                            </label>
+                            <label className={styles.todoEditLabel}>
+                              Notes
+                              <textarea
+                                className={styles.todoEditTextarea}
+                                rows={3}
+                                value={todoEditDraft.notes}
+                                onChange={(event) =>
+                                  setTodoEditDraft((current) => (current ? { ...current, notes: event.target.value } : current))
+                                }
+                                disabled={isBusy}
+                              />
+                            </label>
+                            <div className={styles.todoEditActions}>
+                              <button
+                                type='button'
+                                className={styles.todoStatusButton}
+                                onClick={() => void saveEditedTodo()}
+                                disabled={isBusy}
+                              >
+                                {isUpdatingTodo ? 'Saving...' : 'Save'}
+                              </button>
+                              <button
+                                type='button'
+                                className={styles.todoEditCancelButton}
+                                onClick={cancelEditingTodo}
+                                disabled={isBusy}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className={styles.todoMeta}>{buildSavedTodoMeta(todo)}</p>
+                            {todo.value.notes ? <p className={styles.todoNotes}>{todo.value.notes}</p> : null}
+                          </>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : null}
+            </section>
+
+            <section className={styles.detailSection}>
               <h2 className={styles.sectionTitle}>Agents available</h2>
 
               {isLoadingAgents ? <p className={styles.sectionState}>Loading agents...</p> : null}
@@ -1148,6 +1728,84 @@ export function RecordingPage() {
               >
                 <Trash2 size={14} />
                 {isDeletingRecording ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isRegenerateDialogOpen ? (
+        <div className={styles.deleteDialogOverlay} onClick={closeRegenerateDialog}>
+          <div
+            className={styles.deleteDialog}
+            role='dialog'
+            aria-modal='true'
+            aria-labelledby='regenerate-todos-title'
+            aria-describedby='regenerate-todos-description'
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id='regenerate-todos-title' className={styles.deleteDialogTitle}>
+              Regenerate to-do list?
+            </h2>
+            <p id='regenerate-todos-description' className={styles.deleteDialogDescription}>
+              This will re-run the agent and merge any new to-dos into the current list. Existing completed items will
+              stay completed.
+            </p>
+            <div className={styles.deleteDialogActions}>
+              <button
+                type='button'
+                className={styles.deleteDialogCancelButton}
+                onClick={closeRegenerateDialog}
+                disabled={isExtractingTodos}
+              >
+                Cancel
+              </button>
+              <button
+                type='button'
+                className={styles.deleteDialogConfirmButton}
+                onClick={() => void confirmRegenerateTodos()}
+                disabled={isExtractingTodos}
+              >
+                {isExtractingTodos ? 'Generating...' : 'Regenerate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {pendingTodoDelete ? (
+        <div className={styles.deleteDialogOverlay} onClick={closeTodoDeleteDialog}>
+          <div
+            className={styles.deleteDialog}
+            role='dialog'
+            aria-modal='true'
+            aria-labelledby='delete-todo-title'
+            aria-describedby='delete-todo-description'
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id='delete-todo-title' className={styles.deleteDialogTitle}>
+              Delete this to-do?
+            </h2>
+            <p id='delete-todo-description' className={styles.deleteDialogDescription}>
+              This will permanently remove this to-do from the saved list. This action cannot be undone.
+            </p>
+            <div className={styles.deleteDialogActions}>
+              <button
+                type='button'
+                className={styles.deleteDialogCancelButton}
+                onClick={closeTodoDeleteDialog}
+                disabled={isDeletingTodo}
+              >
+                Cancel
+              </button>
+              <button
+                type='button'
+                className={styles.deleteDialogConfirmButton}
+                onClick={() => void confirmDeleteTodo()}
+                disabled={isDeletingTodo}
+              >
+                <Trash2 size={14} />
+                {isDeletingTodo ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>

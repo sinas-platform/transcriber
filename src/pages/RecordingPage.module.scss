@@ -302,6 +302,171 @@
   overflow: hidden;
 }
 
+.todoList {
+  margin: 0.1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.todoItem {
+  border: 1px solid var(--color-border);
+  border-radius: 0.8rem;
+  padding: 0.62rem 0.68rem;
+  display: grid;
+  gap: 0.35rem;
+  background: #fcfcfd;
+}
+
+.todoItemDone {
+  background: color-mix(in srgb, #dff2ce 52%, #fcfcfd);
+  border-color: color-mix(in srgb, #9ac57a 26%, var(--color-border));
+}
+
+.todoRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.6rem;
+}
+
+.todoActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+}
+
+.todoTaskText {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.38;
+  color: #101828;
+  overflow-wrap: anywhere;
+}
+
+.todoTaskTextDone {
+  color: #667085;
+  text-decoration: line-through;
+}
+
+.todoStatusButton {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #344054;
+  padding: 0.22rem 0.62rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.todoStatusButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.todoIconButton {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #344054;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.todoIconButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.todoMeta,
+.todoNotes {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.34;
+  color: #667085;
+}
+
+.todoNotes {
+  color: #475467;
+  white-space: pre-wrap;
+}
+
+.todoEditForm {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.todoEditLabel {
+  display: grid;
+  gap: 0.22rem;
+  margin: 0;
+  color: #667085;
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.todoEditGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.42rem;
+}
+
+.todoEditInput,
+.todoEditTextarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 0.54rem;
+  background: #ffffff;
+  color: #101828;
+  padding: 0.36rem 0.5rem;
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.todoEditTextarea {
+  resize: vertical;
+  min-height: 4.2rem;
+}
+
+.todoEditInput:disabled,
+.todoEditTextarea:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.todoEditActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+}
+
+.todoEditCancelButton {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #344054;
+  padding: 0.22rem 0.62rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.todoEditCancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .agentsList {
   margin: 0.15rem 0 0;
   padding: 0;
@@ -551,9 +716,17 @@
   .deleteDialogActions {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .todoEditGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 :global(html[data-theme='dark']) {
+  .deleteDialogOverlay {
+    background: color-mix(in srgb, #1f1f1f 62%, transparent);
+  }
+
   .screen {
     background: #282828;
   }
@@ -587,6 +760,39 @@
   .metadataMemberItem,
   .transcriptionText {
     color: #f1f1f1;
+  }
+
+  .todoItem,
+  .todoStatusButton,
+  .todoIconButton,
+  .todoEditInput,
+  .todoEditTextarea,
+  .todoEditCancelButton {
+    background: #333333;
+    border-color: color-mix(in srgb, #b9b9b9 22%, #333333);
+    color: #f1f1f1;
+  }
+
+  .todoItemDone {
+    background: color-mix(in srgb, #6c8a57 24%, #333333);
+    border-color: color-mix(in srgb, #a8c593 34%, #333333);
+  }
+
+  .todoTaskText {
+    color: #f1f1f1;
+  }
+
+  .todoTaskTextDone,
+  .todoMeta {
+    color: #b9b9b9;
+  }
+
+  .todoNotes {
+    color: #d0d0d0;
+  }
+
+  .todoEditLabel {
+    color: #b9b9b9;
   }
 
   .sectionLinkButton {

@@ -65,4 +65,10 @@ export const endpoints = {
     states: '/stores/default/preferences/states',
     stateByKey: (key: string) => `/stores/default/preferences/states/${encode(key)}`,
   },
+
+  stores: {
+    states: (namespace: string, name: string) => `/stores/${encode(namespace)}/${encode(name)}/states`,
+    stateByKey: (namespace: string, name: string, key: string) =>
+      `/stores/${encode(namespace)}/${encode(name)}/states/${encode(key)}`,
+  },
 } as const

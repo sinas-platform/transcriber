@@ -1,12 +1,16 @@
 import axios from 'axios'
 
 export type SinasConfigErrorType = 'missing_store' | 'missing_collection' | 'unknown'
-export type SinasConfigErrorTarget = 'preferences' | 'recordings' | 'any'
+export type SinasConfigErrorTarget = 'preferences' | 'recordings' | 'todos' | 'any'
 
 export const MISSING_PREFERENCES_STORE_MESSAGE =
   'This app is not fully configured yet. Ask your administrator to configure the required preferences store in Sinas Core.'
 export const MISSING_RECORDINGS_COLLECTION_MESSAGE =
   'This app is not fully configured yet. Ask your administrator to set up the recordings collection.'
+export const MISSING_TODOS_STORE_MESSAGE =
+  'This app is not fully configured yet. Ask your administrator to set up the transcriber to-do store.'
+export const MISSING_REQUIRED_STORE_MESSAGE =
+  'This app is not fully configured yet. Ask your administrator to configure the required store.'
 
 function normalizeErrorText(value: string): string {
   return value.trim().toLowerCase()
@@ -97,7 +101,7 @@ export function mapSinasConfigError(
   const detail = getApiErrorDetail(error)
   if (!detail) return 'unknown'
 
-  if ((target === 'preferences' || target === 'any') && matchesMissingStore(detail)) {
+  if ((target === 'preferences' || target === 'todos' || target === 'any') && matchesMissingStore(detail)) {
     return 'missing_store'
   }
 
@@ -115,7 +119,15 @@ export function getFriendlySetupError(
   const errorType = mapSinasConfigError(error, target)
 
   if (errorType === 'missing_store') {
-    return MISSING_PREFERENCES_STORE_MESSAGE
+    if (target === 'preferences') {
+      return MISSING_PREFERENCES_STORE_MESSAGE
+    }
+
+    if (target === 'todos') {
+      return MISSING_TODOS_STORE_MESSAGE
+    }
+
+    return MISSING_REQUIRED_STORE_MESSAGE
   }
 
   if (errorType === 'missing_collection') {

@@ -18,6 +18,13 @@ interface InvokeAgentResponse {
   usage?: Record<string, unknown> | null
 }
 
+export type AgentInvokeMessage = string | Array<Record<string, unknown>>
+
+interface InvokeAgentOptions {
+  sessionKey?: string | null
+  reset?: boolean
+}
+
 export interface AgentSummary {
   id: string
   namespace: string
@@ -50,24 +57,47 @@ export async function invokeAgentForTranscription(
   audioBase64: string,
   format: AudioFormat,
 ): Promise<string> {
+  const result = await invokeAgentWithMessage(namespace, name, [
+    {
+      type: 'text',
+      text: 'Transcribe this audio exactly. Return only transcription text. If unclear, mark [inaudible].',
+    },
+    {
+      type: 'audio',
+      data: audioBase64,
+      format,
+    },
+  ])
+
+  return result.reply
+}
+
+export async function invokeAgentWithMessage(
+  namespace: string,
+  name: string,
+  message: AgentInvokeMessage,
+  options?: InvokeAgentOptions,
+): Promise<{
+  reply: string
+  chatId: string
+  sessionKey: string | null
+  usage: Record<string, unknown> | null
+}> {
   const response = await runtimeApi.post<InvokeAgentResponse>(
     endpoints.chats.invokeAgent(namespace, name),
     {
-      message: [
-        {
-          type: 'text',
-          text: 'Transcribe this audio exactly. Return only transcription text. If unclear, mark [inaudible].',
-        },
-        {
-          type: 'audio',
-          data: audioBase64,
-          format,
-        },
-      ],
+      message,
+      ...(options?.sessionKey ? { session_key: options.sessionKey } : {}),
+      ...(options?.reset !== undefined ? { reset: options.reset } : {}),
     },
   )
 
-  return response.data.reply
+  return {
+    reply: response.data.reply,
+    chatId: response.data.chat_id,
+    sessionKey: response.data.session_key ?? null,
+    usage: response.data.usage ?? null,
+  }
 }
 
 export function pickTranscriptionAudioFormat(contentType: string): AudioFormat | null {
